@@ -1,28 +1,23 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.12)
 project(GGB)
 
-if (WIN32)
-    set(OpenCV_DIR "C:\\_myLibs\\opencv-4.10\\build")
-endif ()
+add_subdirectory(3rdparty)
 
-find_package(OpenCV REQUIRED core imgproc highgui)
+find_package(OpenCV REQUIRED)
 
-add_library(graphical STATIC src/graphical.cpp)
-target_link_directories(graphical PUBLIC ${OpenCV_DIRS})
-target_include_directories(graphical PRIVATE include)
-target_link_libraries(graphical PRIVATE ${OpenCV_LIBS})
+add_library(gl STATIC src/graphical.cpp)
+target_link_directories(gl PUBLIC ${OpenCV_DIRS})
+target_include_directories(gl PRIVATE include)
+target_link_libraries(gl PRIVATE ${OpenCV_LIBS})
 
 file(GLOB SOURCES "src/*.c")
 
-add_library(ggb_core STATIC ${SOURCES})
-target_include_directories(ggb_core PUBLIC include)
+add_library(core STATIC ${SOURCES})
+target_include_directories(core PUBLIC include ${3rdparty_DIRS})
 
 add_executable(ggb main.c)
-
+target_link_libraries(ggb PRIVATE core gl ${3rdparty_LIBS})
 if(UNIX)
     # math.h
     target_link_libraries(ggb PRIVATE m)
 endif ()
-
-target_link_libraries(ggb PRIVATE ggb_core)
-target_link_libraries(ggb PRIVATE graphical)

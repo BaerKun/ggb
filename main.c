@@ -1,6 +1,6 @@
 #include "graphical.h"
 #include "geometry.h"
-#include "console.h"
+#include "console_.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600

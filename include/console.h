@@ -1,8 +1,6 @@
-#ifndef CONSOLE_H
-#define CONSOLE_H
+#ifndef GGB_COMMANDLINE_H
+#define GGB_COMMANDLINE_H
 
-int processCommand(char *buffer);
+void console_listen();
 
-void console();
-
-#endif //CONSOLE_H
+#endif //GGB_COMMANDLINE_H

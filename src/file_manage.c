@@ -26,11 +26,11 @@ int load_src(const int argc, const char **argv) {
         return throwError(ERROR_CANNOT_OPEN_FILE, cannotOpenFileError(filename));
 
     int count = 1;
-    while(fgets(buffer, 256, file)) {
-        if(processCommand(buffer) != 0)
-            return throwError(errorType, errorInline(errorText, count));
-        ++count;
-    }
+    // while(fgets(buffer, 256, file)) {
+    //     if(processCommand(buffer) != 0)
+    //         return throwError(errorType, errorInline(errorText, count));
+    //     ++count;
+    // }
 
     fclose(file);
     return 0;

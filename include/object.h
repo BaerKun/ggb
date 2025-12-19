@@ -1,48 +1,59 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include <stdint.h>
-#include "points_manage.h"
+#include "geometry.h"
+
+#define OBJECT_NAME_MAX_LEN 15
 
 typedef enum {
-    ANY, POINT, CIRCLE, LINE, RAY, SEG
+  UNKNOWN = -1, ANY, POINT, CIRCLE, LINE, RAY, SEG
 } ObjectType;
 
-typedef struct LineObject_ LineObject;
-typedef struct CircleObject_ CircleObject;
-typedef struct GeomObject_ GeomObject;
-typedef union ObjectSelector_ ObjectSelector;
+typedef struct PointObject_ PointObject;
+typedef struct AdjacencyList_ AdjacencyList;
 
-struct LineObject_ {
-    PointObject *pt1, *pt2;
-    PointObject *showPt1, *showPt2;
+struct AdjacencyList_ {
+  PointObject *pt;
+  AdjacencyList *next;
 };
 
-struct CircleObject_ {
-    PointObject *center, *pt;
-    float radius;
+struct PointObject_ {
+  Point2f coord;
+  AdjacencyList *successors;
+
+  int indegree;
+  Point2f (*constraint)(int, const PointObject **);
+  const PointObject *predecessors[];
 };
 
-union ObjectSelector_ {
-    PointObject *point;
-    LineObject line;
-    CircleObject circle;
-};
+typedef struct {
+  int argc;
+  PointObject **argv;
+  Point2f (*callback)(int, const PointObject **);
+} Constraint;
 
-struct GeomObject_ {
-    unsigned long long id;
-    int show, color;
-    ObjectType type;
-    GeomObject *next;
-    ObjectSelector ptr[0];
-};
+typedef struct {
+  char name[OBJECT_NAME_MAX_LEN + 1];
+  ObjectType type;
+  int show, color;
+  PointObject *pt1, *pt2;
+} GeomObject;
 
-GeomObject *findObject(ObjectType type, uint64_t id);
+void object_init();
+void object_cleanup();
 
-int create(int argc, const char **argv);
+static inline int may_be_coord(const char *str) {
+  return *str == '-' || *str == '+' || (*str >= '0' && *str <= '9');
+}
 
-int midpoint(int argc, const char **argv);
+ObjectType get_type_from_str(const char *str);
+int get_coord_from_str(const char *str, Point2f *coord);
 
-int move_pt(int argc, const char **argv);
+PointObject *create_point(Point2f coord, Constraint cons);
+void delete_point(PointObject *pt);
+
+GeomObject *create_object(ObjectType type, PointObject *pt1, PointObject *pt2,
+                          const char *name, int color, int show);
+GeomObject *find_object(ObjectType type, const char *name);
 
 #endif //OBJECT_H

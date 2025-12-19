@@ -3,10 +3,10 @@
 #include <string.h>
 
 struct StringHashEntry_ {
-  StringHashEntry *next;
-  uint32_t hash;
   int id;
-  char str[];
+  uint32_t hash;
+  const char *str;
+  StringHashEntry *next;
 };
 
 static inline uint32_t str_hash(const char *str) {
@@ -39,6 +39,13 @@ void string_hash_free(const StringHashTable *table) {
   free(table->entries);
 }
 
+int string_hash_alloc_id(StringHashTable *table) {
+  const int id = table->id_head;
+  if (id == table->cap) return -1;
+  table->id_head = table->next_id[table->id_head];
+  return id;
+}
+
 static StringHashEntry **string_hash_find_list(StringHashEntry **ptr, const uint32_t hash, const char *str) {
   for (StringHashEntry *entry = *ptr; entry; entry = *ptr) {
     if (entry->hash == hash && strcmp(entry->str, str) == 0) break;
@@ -47,26 +54,20 @@ static StringHashEntry **string_hash_find_list(StringHashEntry **ptr, const uint
   return ptr;
 }
 
-int string_hash_insert(StringHashTable *table, const char *str) {
+void string_hash_insert(StringHashTable *table, const char *str, const int id) {
   const uint32_t hash = str_hash(str);
   const uint32_t index = hash % table->cap;
   StringHashEntry **ptr = string_hash_find_list(table->entries + index, hash, str);
-  StringHashEntry *entry = *ptr;
-
-  if (entry != NULL) return entry->id;
-  if (table->size == table->cap) return -1;
 
   const size_t str_size = strlen(str) + 1;
-  entry = malloc(sizeof(StringHashEntry) + str_size);
-  entry->next = NULL;
+  StringHashEntry *entry = malloc(sizeof(StringHashEntry) + str_size);
+  entry->id = id;
   entry->hash = hash;
-  entry->id = table->id_head;
-  table->id_head = table->next_id[table->id_head];
-  memcpy(entry->str, str, str_size);
+  entry->str = str;
+  entry->next = NULL;
 
   *ptr = entry;
   ++table->size;
-  return entry->id;
 }
 
 int string_hash_remove(StringHashTable *table, const char *str) {

@@ -1,13 +1,8 @@
 #include "commandline.h"
 #include "str_hash.h"
+#include "command.h"
 
-#define DECLARE_COMMAND(cmd) int cmd(int, const char **);
-DECLARE_COMMAND(create);
-DECLARE_COMMAND(show);
-DECLARE_COMMAND(hide);
-DECLARE_COMMAND(move_pt);
-DECLARE_COMMAND(load_src);
-DECLARE_COMMAND(midpoint);
+#define ARGV_SIZE 24
 
 typedef int (*CommandFunction)(int, const char **);
 
@@ -25,16 +20,14 @@ CommandMapEntry cmd_map[] = {
     {"midpoint", midpoint}
 };
 
-#define CMD_NUM (sizeof(cmd_map) / sizeof(CommandMapEntry))
-#define ARGV_SIZE 24
-
+const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));
 static StringHashTable cmd_hash;
-static CommandFunction cmd_func[CMD_NUM];
 
 void commandline_init() {
   string_hash_init(&cmd_hash, CMD_NUM);
   for (int i = 0; i < CMD_NUM; i++) {
-    cmd_func[string_hash_insert(&cmd_hash, cmd_map[i].name)] = cmd_map[i].func;
+    const int id = string_hash_alloc_id(&cmd_hash);
+    string_hash_insert(&cmd_hash, cmd_map[id].name, id);
   }
 }
 
@@ -46,8 +39,7 @@ int read_line(FILE *stream, char *buffer) {
   buffer[CMD_BUFF_SIZE - 2] = '\0';
 
   if (!fgets(buffer, CMD_BUFF_SIZE, stream)) {
-    // Error:
-    return 1;
+    return 0;
   }
 
   const char ch = buffer[CMD_BUFF_SIZE - 2];
@@ -92,5 +84,5 @@ int commandline_parse(char *line) {
     fprintf(stderr, "Error: command not found.\n");
     return 0;
   }
-  return cmd_func[cmd_id](argc, argv);
+  return cmd_map[cmd_id].func(argc, argv);
 }

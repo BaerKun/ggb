@@ -22,8 +22,8 @@ static inline float sqrdist_lv(const Vector2f line_dir, const Vector2f vec) {
 }
 
 static float sqrdist_lp(const GeomObject *line, const Point2f p) {
-    const Point2f p1 = line->ptr->line.pt1->coord;
-    const Point2f p2 = line->ptr->line.pt2->coord;
+    const Point2f p1 = line->args->line.pt1->coord;
+    const Point2f p2 = line->args->line.pt2->coord;
     const Vector2f vec1 = vec2_from_2p(p1, p),
             vec2 = vec2_from_2p(p2, p),
             lineDir = vec2_from_2p(p1, p2);
@@ -47,17 +47,17 @@ void refreshBoard() {
 
     for (GeomObject *cr = circleSet; cr != NULL; cr = cr->next)
         if (cr->show)
-            drawCircle(imageWindow, toImageCoord(cr->ptr->circle.center->coord, origin),
-                       (int) getCircleRadius(&cr->ptr->circle), cr->color, 2);
+            drawCircle(imageWindow, toImageCoord(cr->args->circle.center->coord, origin),
+                       (int) getCircleRadius(&cr->args->circle), cr->color, 2);
 
     for (const GeomObject *ln = lineSet; ln != NULL; ln = ln->next)
         if (ln->show)
-            drawLine(imageWindow, toImageCoord(ln->ptr->line.showPt1->coord, origin),
-                     toImageCoord(ln->ptr->line.showPt2->coord, origin), ln->color, 2);
+            drawLine(imageWindow, toImageCoord(ln->args->line.showPt1->coord, origin),
+                     toImageCoord(ln->args->line.showPt2->coord, origin), ln->color, 2);
 
     for (const GeomObject *pt = pointSet; pt != NULL; pt = pt->next)
         if (pt->show)
-            drawPoint(imageWindow, toImageCoord(pt->ptr->point->coord, origin), pt->color);
+            drawPoint(imageWindow, toImageCoord(pt->args->point->coord, origin), pt->color);
 }
 
 GeomObject *mouseSelect(const int x, const int y) {
@@ -65,7 +65,7 @@ GeomObject *mouseSelect(const int x, const int y) {
     const float threshold = 25.f;
 
     for (GeomObject *pt = pointSet; pt != NULL; pt = pt->next)
-        if (pt->show && sqrdist(mouse, pt->ptr->point->coord) < threshold)
+        if (pt->show && sqrdist(mouse, pt->args->point->coord) < threshold)
             return pt;
 
     for (GeomObject *ln = lineSet; ln != NULL; ln = ln->next)
@@ -73,7 +73,7 @@ GeomObject *mouseSelect(const int x, const int y) {
             return ln;
 
     for (GeomObject *cr = circleSet; cr != NULL; cr = cr->next)
-        if (cr->show && dist2f(mouse, cr->ptr->circle.center->coord) - cr->ptr->circle.radius < 5.f)
+        if (cr->show && dist2f(mouse, cr->args->circle.center->coord) - cr->args->circle.radius < 5.f)
             return cr;
 
     return NULL;

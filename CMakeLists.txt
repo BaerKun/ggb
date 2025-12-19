@@ -12,7 +12,7 @@ target_link_directories(gl PUBLIC ${OpenCV_DIRS})
 target_include_directories(gl PRIVATE include)
 target_link_libraries(gl PRIVATE ${OpenCV_LIBS})
 
-file(GLOB SOURCES "src/*.c")
+file(GLOB SOURCES "src/*.c" "src/command/*.c")
 
 add_library(core STATIC ${SOURCES})
 target_include_directories(core PUBLIC include ${3rdparty_DIRS})

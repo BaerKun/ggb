@@ -1,5 +1,5 @@
-#ifndef GGB_COMMAND_H
-#define GGB_COMMAND_H
+#ifndef GGB_COMMANDLINE_H
+#define GGB_COMMANDLINE_H
 
 #include <stdio.h>
 
@@ -10,4 +10,4 @@ int read_line(FILE *stream, char *buffer);
 int commandline_parse(char *line);
 void commandline_cleanup();
 
-#endif //GGB_COMMAND_H
+#endif //GGB_COMMANDLINE_H

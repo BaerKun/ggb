@@ -1,41 +1,8 @@
 #include "object.h"
 #include "str_hash.h"
-
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-static struct {
-  size_t capacity, size;
-  GeomObject *vector;
-  StringHashTable hash_table;
-} objects;
-
-static struct {
-  struct {
-    int point, circle, line;
-  } color;
-} default_option = {
-    {0x000080, 0x10101010, 0x101010}
-};
-
-static void get_default_name(char *name) {
-  static unsigned int id = 0;
-  sprintf(name, "$%05u", id++);
-}
-
-void object_init() {
-  objects.capacity = 256;
-  objects.size = 0;
-  objects.vector = malloc(objects.capacity * sizeof(GeomObject));
-  string_hash_init(&objects.hash_table, objects.capacity);
-}
-
-void object_cleanup() {
-  free(objects.vector);
-  string_hash_free(&objects.hash_table);
-}
 
 ObjectType get_type_from_str(const char *str) {
   uint64_t hash = 0;
@@ -59,15 +26,52 @@ ObjectType get_type_from_str(const char *str) {
 }
 
 int get_coord_from_str(const char *str, Point2f *coord) {
-  sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
+  return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
 }
 
-GeomObject *find_object(const ObjectType type, const char *name) {
+static struct {
+  unsigned capacity, size;
+  GeomObject *vector;
+  StringHashTable hash_table;
+} objects;
+
+static struct {
+  struct {
+    int point, circle, line;
+  } color;
+} default_option = {
+    {0x000080, 0x10101010, 0x101010}
+};
+
+static void get_default_name(char *name) {
+  static unsigned int id = 0;
+  sprintf(name, "$%05u", id++);
+}
+
+void object_module_init(const unsigned init_size) {
+  objects.capacity = init_size;
+  objects.size = 0;
+  objects.vector = malloc(init_size * sizeof(GeomObject));
+  string_hash_init(&objects.hash_table, init_size);
+  point_module_init(init_size * 2);
+}
+
+void object_module_cleanup() {
+  free(objects.vector);
+  string_hash_free(&objects.hash_table);
+  point_module_cleanup();
+}
+
+void object_draw_all() {
+}
+
+GeomObject *object_find(const ObjectType type, const char *name) {
   const int idx = string_hash_find(&objects.hash_table, name);
-  return idx == -1 ? NULL : objects.vector + idx;
+  GeomObject *obj = objects.vector + idx;
+  return (idx == -1 || obj->type != type) ? NULL : obj;
 }
 
-GeomObject *create_object(const ObjectType type, PointObject *pt1,
+GeomObject *object_create(const ObjectType type, PointObject *pt1,
                           PointObject *pt2, const char *name, const int color,
                           const int show) {
   if (objects.size++ == objects.capacity) {

@@ -3,12 +3,9 @@
 
 #include "object.h"
 
-void refreshBoard();
-
-GeomObject *mouseSelect(int x, int y);
-
-int show(int argc, const char **argv);
-
-int hide(int argc, const char **argv);
+void board_init();
+void board_cleanup();
+void board_draw(GeomObject *objs);
+void board_refresh();
 
 #endif //BOARD_H

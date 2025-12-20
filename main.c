@@ -16,7 +16,5 @@ int main() {
                              WINDOW_HEIGHT);
 
   console_mode();
-  showWindow(mainWindow);
-  waitKey(-1);
   return 0;
 }

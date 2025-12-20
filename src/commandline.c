@@ -13,11 +13,11 @@ typedef struct {
 
 CommandMapEntry cmd_map[] = {
     {"create", create},
-    {"show", show},
-    {"hide", hide},
-    {"move-pt", move_pt},
+    // {"show", show},
+    // {"hide", hide},
+    // {"move-pt", move_pt},
     {"load-src", load_src},
-    {"midpoint", midpoint}
+    // {"midpoint", midpoint}
 };
 
 const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));
@@ -38,9 +38,7 @@ void commandline_cleanup() {
 int read_line(FILE *stream, char *buffer) {
   buffer[CMD_BUFF_SIZE - 2] = '\0';
 
-  if (!fgets(buffer, CMD_BUFF_SIZE, stream)) {
-    return 0;
-  }
+  if (!fgets(buffer, CMD_BUFF_SIZE, stream)) return 0;
 
   const char ch = buffer[CMD_BUFF_SIZE - 2];
   if (ch != '\0' && ch != '\n') {
@@ -78,11 +76,13 @@ static int split_args(char *ptr, const char **argv) {
 int commandline_parse(char *line) {
   static const char *argv[ARGV_SIZE];
   const int argc = split_args(line, argv);
+  if (argc == 0) return 0;
+
   const char *cmd = argv[0];
   const int cmd_id = string_hash_find(&cmd_hash, cmd);
   if (cmd_id == -1) {
     fprintf(stderr, "Error: command not found.\n");
-    return 0;
+    return 1;
   }
   return cmd_map[cmd_id].func(argc, argv);
 }

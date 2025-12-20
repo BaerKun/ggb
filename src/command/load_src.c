@@ -11,7 +11,7 @@ int load_src(const int argc, const char **argv) {
     }
 
     int err;
-    while(read_line(file, buffer)) {
+    while(!read_line(file, buffer)) {
       if((err = commandline_parse(buffer))) {
         return err;
       }

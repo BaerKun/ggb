@@ -2,49 +2,51 @@
 #define QUEUE_H
 
 #include <stdlib.h>
+#include "point.h"
 
-#ifndef QUEUE_ELEMENT_TYPE
-#define QUEUE_ELEMENT_TYPE int
-#endif
+typedef struct Queue_ {
+  unsigned capacity, size;
+  unsigned front, rear;
+  PointObject **elements;
+} Queue;
 
-typedef struct Queue_ Queue;
-
-struct Queue_{
-    int capacity;
-    int front;
-    int rear;
-    int size;
-    QUEUE_ELEMENT_TYPE *elements;
-};
-
-static Queue *newQueue(const int capacity){
-    Queue *queue = malloc(sizeof(Queue));
-    *queue = (Queue){capacity, 0, 0, 0, malloc(capacity * sizeof(QUEUE_ELEMENT_TYPE))};
-    return queue;
+static inline void queue_init(Queue *const queue, const unsigned capacity) {
+  queue->capacity = capacity;
+  queue->size = queue->front = queue->rear = 0;
+  queue->elements = malloc(sizeof(PointObject *) * capacity);
 }
 
-static void enqueue(Queue *queue, QUEUE_ELEMENT_TYPE element){
-    queue->elements[queue->rear] = element;
-    if(++queue->rear == queue->capacity)
-        queue->rear = 0;
-    queue->size++;
+static inline void enqueue(Queue *const queue, PointObject *const element) {
+  queue->elements[queue->rear] = element;
+  if (++queue->rear == queue->capacity) queue->rear = 0;
+  queue->size++;
 }
 
-static QUEUE_ELEMENT_TYPE dequeue(Queue *queue){
-    QUEUE_ELEMENT_TYPE const front = queue->elements[queue->front];
-    if(++queue->front == queue->capacity)
-        queue->front = 0;
-    queue->size--;
-
-    return front;
+static inline PointObject *dequeue(Queue *const queue) {
+  PointObject *const front = queue->elements[queue->front];
+  if (++queue->front == queue->capacity) queue->front = 0;
+  queue->size--;
+  return front;
 }
 
-static void queue_makeEmpty(Queue *queue){
-    queue->front = queue->rear = queue->size = 0;
+static inline void queue_make_empty(Queue *const queue) {
+  queue->front = queue->rear = queue->size = 0;
 }
 
-static void queue_destroy(Queue *queue){
-    free(queue->elements);
-    free(queue);
+static inline int queue_empty(const Queue *const queue) {
+  return queue->size == 0;
 }
+
+static inline void queue_resize(Queue *const queue, const unsigned new_cap) {
+  if (new_cap <= queue->capacity) return;
+  queue->capacity = new_cap + queue->capacity; // * 2
+  void *buff = realloc(queue->elements, sizeof(PointObject *) * new_cap);
+  if (buff == NULL) return;
+  queue->elements = buff;
+}
+
+static inline void queue_free(const Queue *const queue) {
+  free(queue->elements);
+}
+
 #endif //QUEUE_H

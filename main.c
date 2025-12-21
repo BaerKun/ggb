@@ -1,4 +1,4 @@
-#include "graphical.h"
+#include "gbb_gl.h"
 #include "geometry.h"
 #include "console.h"
 

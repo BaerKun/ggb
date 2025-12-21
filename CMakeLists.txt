@@ -7,7 +7,7 @@ add_subdirectory(3rdparty)
 
 find_package(OpenCV REQUIRED)
 
-add_library(gl STATIC src/graphical.cpp)
+add_library(gl STATIC src/gbb_gl.c)
 target_link_directories(gl PUBLIC ${OpenCV_DIRS})
 target_include_directories(gl PRIVATE include)
 target_link_libraries(gl PRIVATE ${OpenCV_LIBS})

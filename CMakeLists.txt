@@ -5,20 +5,12 @@ set(CMAKE_C_STANDARD 11)
 
 add_subdirectory(3rdparty)
 
-find_package(OpenCV REQUIRED)
-
-add_library(gl STATIC src/gbb_gl.c)
-target_link_directories(gl PUBLIC ${OpenCV_DIRS})
-target_include_directories(gl PRIVATE include)
-target_link_libraries(gl PRIVATE ${OpenCV_LIBS})
-
 file(GLOB SOURCES "src/*.c" "src/command/*.c")
-
 add_library(core STATIC ${SOURCES})
 target_include_directories(core PUBLIC include ${3rdparty_DIRS})
 
 add_executable(ggb main.c)
-target_link_libraries(ggb PRIVATE core gl ${3rdparty_LIBS})
+target_link_libraries(ggb PRIVATE core ${3rdparty_LIBS})
 if(UNIX)
     # math.h
     target_link_libraries(ggb PRIVATE m)

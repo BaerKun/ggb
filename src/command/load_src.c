@@ -1,7 +1,7 @@
 #include "commandline.h"
 
 int load_src(const int argc, const char **argv) {
-  static char buffer[CMD_BUFF_SIZE];
+  static char buffer[CLI_BUF_SIZE];
 
   for (int i = 1; i < argc; ++i) {
     FILE *file = fopen(argv[i], "r");

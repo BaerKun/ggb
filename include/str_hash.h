@@ -20,10 +20,10 @@ typedef struct {
   int *next_id;
 } StringHashTable;
 
-#define string_hash_traverse(hash, id) \
-  for (uint32_t i__ = 0; i__ < (hash).cap; i__++) \
-    for (StringHashEntry *entry__ = (hash).entries[i__]; \
-        ((id) = entry__->id, entry__); entry__ = entry__->next)
+#define string_hash_traverse(hash_, id_) \
+  for (uint32_t i__ = 0; i__ < (hash_).cap; i__++) \
+    for (StringHashEntry *entry__ = (hash_).entries[i__]; entry__; entry__ = entry__->next) \
+      if ((id_) = entry__->id, 1)
 
 void string_hash_init(StringHashTable *table, uint32_t init_size);
 int string_hash_alloc_id(StringHashTable *table);

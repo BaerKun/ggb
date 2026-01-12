@@ -36,11 +36,11 @@ void commandline_cleanup() {
 }
 
 int read_line(FILE *stream, char *buffer) {
-  buffer[CMD_BUFF_SIZE - 2] = '\0';
+  buffer[CLI_BUF_SIZE - 2] = '\0';
 
-  if (!fgets(buffer, CMD_BUFF_SIZE, stream)) return 0;
+  if (!fgets(buffer, CLI_BUF_SIZE, stream)) return 0;
 
-  const char ch = buffer[CMD_BUFF_SIZE - 2];
+  const char ch = buffer[CLI_BUF_SIZE - 2];
   if (ch != '\0' && ch != '\n') {
     // Error: command line too long.
     return 2;

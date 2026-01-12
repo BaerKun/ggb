@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define CMD_BUFF_SIZE 256
+#define CLI_BUF_SIZE 256
 
 void commandline_init();
 int read_line(FILE *stream, char *buffer);

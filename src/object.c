@@ -1,33 +1,9 @@
+#include "raylib.h"
 #include "object.h"
 #include "str_hash.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-ObjectType get_type_from_str(const char *str) {
-  uint64_t hash = 0;
-  for (int i = 0; *str && i < 8; ++i) {
-    hash = (hash << 8) | *str++;
-  }
-  switch (hash) {
-  case 0x706f696e74:
-    return POINT;
-  case 0x636972636c65:
-    return CIRCLE;
-  case 0x6c696e65:
-    return LINE;
-  case 0x726179:
-    return RAY;
-  case 0x736567:
-    return SEG;
-  default:
-    return UNKNOWN;
-  }
-}
-
-int get_coord_from_str(const char *str, Point2f *coord) {
-  return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
-}
 
 static struct {
   unsigned capacity, size;
@@ -37,11 +13,26 @@ static struct {
 
 static struct {
   struct {
-    int point, circle, line;
+    Color point, circle, line;
   } color;
-} default_option = {
-    {0x000080, 0x10101010, 0x101010}
-};
+} default_option;
+
+ObjectType get_type_from_str(const char *str) {
+  uint64_t hash = 0; // clang-format off
+  for (int i = 0; *str && i < 8; ++i) hash = (hash << 8) | *str++;
+  switch (hash) {
+  case 0x706f696e74: return POINT;
+  case 0x636972636c65: return CIRCLE;
+  case 0x6c696e65: return LINE;
+  case 0x726179: return RAY;
+  case 0x736567: return SEG;
+  default: return UNKNOWN;
+  } // clang-format on
+}
+
+int get_coord_from_str(const char *str, Vector2 *coord) {
+  return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
+}
 
 static void get_default_name(char *name) {
   static unsigned int id = 0;
@@ -49,6 +40,10 @@ static void get_default_name(char *name) {
 }
 
 void object_module_init(const unsigned init_size) {
+  default_option.color.point = DARKBLUE;
+  default_option.color.circle = GRAY;
+  default_option.color.line = GRAY;
+
   objects.capacity = init_size;
   objects.size = 0;
   objects.vector = malloc(init_size * sizeof(GeomObject));
@@ -60,9 +55,6 @@ void object_module_cleanup() {
   free(objects.vector);
   string_hash_free(&objects.hash_table);
   point_module_cleanup();
-}
-
-void object_draw_all() {
 }
 
 GeomObject *object_find(const ObjectType type, const char *name) {
@@ -89,16 +81,56 @@ GeomObject *object_create(const ObjectType type, PointObject *pt1,
   string_hash_insert(&objects.hash_table, obj->name, id);
 
   obj->type = type;
-  if (color == -1) {
-    if (type == POINT) obj->color = default_option.color.point;
-    else if (type == CIRCLE) obj->color = default_option.color.circle;
-    else obj->color = default_option.color.line;
-  } else {
-    obj->color = color;
-  }
-
   obj->show = show;
+  obj->color = color;
   obj->pt1 = pt1;
   obj->pt2 = pt2;
   return obj;
+}
+
+static inline Color to_raylib_color(const int color) {
+  // little-endian
+  return (Color){(unsigned)color >> 16, (unsigned)color >> 8, color, 255};
+}
+
+static inline Vector2 get_end_point(const Vector2 p, const Vector2 q) {
+  const Vector2 v = Vector2Subtract(q, p);
+  const float norm = Vector2Length(v);
+  if (norm == 0) return p;
+  const float scale = 4096.f / norm;
+  return (Vector2){p.x + v.x * scale, p.y + v.y * scale};
+}
+
+void object_draw_all() {
+#define GET_RAYLIB_COLOR(type_, color_) ((color_) == -1 ? default_option.color.type_ : to_raylib_color(color_))
+
+  int i;
+  string_hash_traverse(objects.hash_table, i) {
+    const GeomObject *obj = objects.vector + i;
+    const Vector2 *p = &obj->pt1->coord;
+    const Vector2 *q = &obj->pt2->coord;
+    switch (obj->type) {
+    case POINT:
+      DrawCircleV(*p, 1, GET_RAYLIB_COLOR(point, obj->color));
+      break;
+    case CIRCLE:
+      DrawCircleLinesV(*p, Vector2Distance(*p, *q),
+                       GET_RAYLIB_COLOR(circle, obj->color));
+      break;
+    case LINE:
+      DrawLineV(get_end_point(*p, *q), get_end_point(*q, *p),
+                GET_RAYLIB_COLOR(line, obj->color));
+      break;
+    case RAY:
+      DrawLineV(*p, get_end_point(*p, *q),
+                GET_RAYLIB_COLOR(line, obj->color));
+      break;
+    case SEG:
+      DrawLineV(*p, *q, GET_RAYLIB_COLOR(line, obj->color));
+      break;
+    default:
+      break;
+    }
+  }
+#undef GET_DEFAULT_COLOR
 }

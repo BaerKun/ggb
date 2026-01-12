@@ -48,7 +48,7 @@ int create(const int argc, const char **argv) {
     return 5;
   }
 
-  Point2f coord;
+  Vector2 coord;
   PointObject *pt1, *pt2, *tmp = NULL;
 
   const char *pt_str = argv[1];

@@ -21,7 +21,7 @@ static inline int may_be_coord(const char *str) {
 }
 
 ObjectType get_type_from_str(const char *str);
-int get_coord_from_str(const char *str, Point2f *coord);
+int get_coord_from_str(const char *str, Vector2 *coord);
 
 void object_module_init(unsigned init_size);
 void object_module_cleanup();

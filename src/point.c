@@ -11,7 +11,7 @@ void point_module_cleanup() {
   queue_free(&queue);
 }
 
-PointObject *point_create(const Point2f coord, const Constraint cons) {
+PointObject *point_create(const Vector2 coord, const Constraint cons) {
   PointObject *pt = malloc(sizeof(PointObject) + sizeof(PointObject *) * cons.argc);
   pt->coord = coord;
   pt->indegree = cons.argc;
@@ -36,7 +36,7 @@ void point_delete(PointObject *pt) {
   free(pt);
 }
 
-void point_move(PointObject **pts, const Point2f *dst, const int count) {
+void point_move(PointObject **pts, const Vector2 *dst, const int count) {
   queue_make_empty(&queue);
   queue_resize(&queue, points_num);
 }

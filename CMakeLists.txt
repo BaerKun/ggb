@@ -11,5 +11,5 @@ target_include_directories(ggb PUBLIC include ${3rdparty_DIRS})
 target_link_libraries(ggb PRIVATE ${3rdparty_LIBS})
 if(UNIX)
     # math.h
-    target_link_libraries(core PRIVATE m)
+    target_link_libraries(ggb PRIVATE m)
 endif ()

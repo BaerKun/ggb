@@ -61,7 +61,7 @@ void object_module_cleanup() {
 GeomObject *object_find(const ObjectType type, const char *name) {
   const int idx = string_hash_find(&objects.hash_table, name);
   GeomObject *obj = objects.vector + idx;
-  return (idx == -1 || obj->type != type) ? NULL : obj;
+  return idx == -1 || (type != ANY && obj->type != type) ? NULL : obj;
 }
 
 GeomObject *object_create(const ObjectType type, PointObject *pt1,

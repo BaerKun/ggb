@@ -35,20 +35,6 @@ void commandline_cleanup() {
   string_hash_free(&cmd_hash);
 }
 
-int read_line(FILE *stream, char *buffer) {
-  buffer[CLI_BUF_SIZE - 2] = '\0';
-
-  if (!fgets(buffer, CLI_BUF_SIZE, stream)) return 0;
-
-  const char ch = buffer[CLI_BUF_SIZE - 2];
-  if (ch != '\0' && ch != '\n') {
-    // Error: command line too long.
-    return 2;
-  }
-
-  return 0;
-}
-
 static int split_args(char *ptr, const char **argv) {
   int argc = 0, first_letter = 1;
   for (;; ++ptr) {
@@ -81,7 +67,7 @@ int commandline_parse(char *line) {
   const char *cmd = argv[0];
   const int cmd_id = string_hash_find(&cmd_hash, cmd);
   if (cmd_id == -1) {
-    fprintf(stderr, "Error: command not found.\n");
+    // fprintf(stderr, "Error: command not found.\n");
     return 1;
   }
   return cmd_map[cmd_id].func(argc, argv);

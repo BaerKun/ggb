@@ -39,11 +39,12 @@ static void get_default_name(char *name) {
   sprintf(name, "$%05u", id++);
 }
 
-void object_module_init(const unsigned init_size) {
+void object_module_init() {
   default_option.color.point = DARKBLUE;
   default_option.color.circle = GRAY;
   default_option.color.line = GRAY;
 
+  const unsigned init_size = 256;
   objects.capacity = init_size;
   objects.size = 0;
   objects.vector = malloc(init_size * sizeof(GeomObject));
@@ -111,7 +112,7 @@ void object_draw_all() {
     const Vector2 *q = &obj->pt2->coord;
     switch (obj->type) {
     case POINT:
-      DrawCircleV(*p, 1, GET_RAYLIB_COLOR(point, obj->color));
+      DrawCircleV(*p, 2, GET_RAYLIB_COLOR(point, obj->color));
       break;
     case CIRCLE:
       DrawCircleLinesV(*p, Vector2Distance(*p, *q),

@@ -1,33 +1,24 @@
 #include "raylib.h"
-#include "object.h"
-#include "commandline.h"
+#include "core.h"
+#include "console.h"
+#include "board.h"
 
 int WINDOW_WIDTH = 800;
 int WINDOW_HEIGHT = 600;
-
-static void core_init() {
-  commandline_init();
-  object_module_init(256);
-}
-
-static void core_release() {
-  commandline_cleanup();
-  object_module_cleanup();
-}
 
 int main() {
   core_init();
   SetTraceLogLevel(LOG_ERROR);
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "ggb");
+  SetTargetFPS(60);
 
-  char buff[CLI_BUF_SIZE];
   while (!WindowShouldClose()) {
+    console_listen();
     BeginDrawing();
     ClearBackground(WHITE);
-    object_draw_all();
+    board_draw();
+    console_draw(0, WINDOW_HEIGHT - 100, WINDOW_WIDTH, 100);
     EndDrawing();
-    read_line(stdin, buff);
-    commandline_parse(buff);
   }
 
   CloseWindow();

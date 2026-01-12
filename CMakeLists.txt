@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 11)
 
 add_subdirectory(3rdparty)
 
-file(GLOB SOURCES "src/*.c" "src/command/*.c")
+file(GLOB_RECURSE SOURCES "src/*.c")
 add_executable(ggb ${SOURCES})
 target_include_directories(ggb PUBLIC include ${3rdparty_DIRS})
 target_link_libraries(ggb PRIVATE ${3rdparty_LIBS})

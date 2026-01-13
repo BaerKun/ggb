@@ -13,25 +13,24 @@ struct StringHashEntry_ {
 };
 
 typedef struct {
-  uint32_t cap, size;
+  int cap, size;
   StringHashEntry **entries;
 
-  int id_head;
-  int *next_id;
+  int head;
+  int *state;
 } StringHashTable;
 
-#define string_hash_traverse(hash_, id_) \
-  for (uint32_t i__ = 0; i__ < (hash_).cap; i__++) \
-    for (StringHashEntry *entry__ = (hash_).entries[i__]; entry__; entry__ = entry__->next) \
-      if ((id_) = entry__->id, 1)
-
-void string_hash_init(StringHashTable *table, uint32_t init_size);
+void string_hash_init(StringHashTable *table, int init_size);
 int string_hash_alloc_id(StringHashTable *table);
 void string_hash_insert(StringHashTable *table, const char *str, int id);
 int string_hash_remove(StringHashTable *table, const char *str);
 int string_hash_find(const StringHashTable *table, const char *str);
 void string_hash_free(const StringHashTable *table);
 // new_size > old_size
-void string_hash_resize(StringHashTable *table, uint32_t new_size);
+void string_hash_resize(StringHashTable *table, int new_size);
+
+static inline const int *string_hash_get_state(const StringHashTable *table) {
+  return table->state;
+}
 
 #endif //GGB_HASH_H

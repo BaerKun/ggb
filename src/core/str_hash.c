@@ -8,19 +8,19 @@ static inline uint32_t str_hash(const char *str) {
   return hash;
 }
 
-void string_hash_init(StringHashTable *table, const uint32_t init_size) {
+void string_hash_init(StringHashTable *table, const int init_size) {
   table->cap = init_size;
   table->size = 0;
   table->entries = calloc(init_size, sizeof(StringHashEntry *));
 
-  table->id_head = 0;
-  table->next_id = malloc(init_size * sizeof(int));
-  for (int i = 0; i < init_size; i++) table->next_id[i] = i + 1;
+  table->head = 0;
+  table->state = malloc(init_size * sizeof(int));
+  for (int i = 0; i < init_size; i++) table->state[i] = i + 1;
   // table->next_id[init_size - 1] = -1;
 }
 
 void string_hash_free(const StringHashTable *table) {
-  for (uint32_t i = 0; i < table->cap; i++) {
+  for (int i = 0; i < table->cap; i++) {
     for (StringHashEntry *entry = table->entries[i]; entry;) {
       StringHashEntry *next = entry->next;
       free(entry);
@@ -28,14 +28,15 @@ void string_hash_free(const StringHashTable *table) {
     }
   }
 
-  free(table->next_id);
+  free(table->state);
   free(table->entries);
 }
 
 int string_hash_alloc_id(StringHashTable *table) {
-  const int id = table->id_head;
+  const int id = table->head;
   if (id == table->cap) return -1;
-  table->id_head = table->next_id[table->id_head];
+  table->head = table->state[id];
+  table->state[id] = -1;
   return id;
 }
 
@@ -76,12 +77,12 @@ int string_hash_remove(StringHashTable *table, const char *str) {
   if (entry == NULL) return -1;
 
   *ptr = entry->next;
-  table->next_id[entry->id] = table->id_head;
-  table->id_head = entry->id;
+  table->state[entry->id] = table->head;
+  table->head = entry->id;
   free(entry);
 
   --table->size;
-  return table->id_head;
+  return table->head;
 }
 
 int string_hash_find(const StringHashTable *table, const char *str) {
@@ -92,8 +93,8 @@ int string_hash_find(const StringHashTable *table, const char *str) {
   return (*ptr) ? (*ptr)->id : -1;
 }
 
-void string_hash_resize(StringHashTable *table, const uint32_t new_size) {
-  const uint32_t old_size = table->cap;
+void string_hash_resize(StringHashTable *table, const int new_size) {
+  const int old_size = table->cap;
   void *buff = realloc(table->entries, new_size * sizeof(StringHashEntry *));
   if (buff == NULL) return;
   table->cap = new_size;
@@ -101,12 +102,12 @@ void string_hash_resize(StringHashTable *table, const uint32_t new_size) {
   memset(table->entries + old_size, 0,
          (new_size - old_size) * sizeof(StringHashEntry *));
 
-  buff = realloc(table->next_id, new_size * sizeof(int));
+  buff = realloc(table->state, new_size * sizeof(int));
   if (buff == NULL) return;
-  table->next_id = buff;
-  for (int i = (int)old_size; i < new_size; i++) table->next_id[i] = i + 1;
+  table->state = buff;
+  for (int i = old_size; i < new_size; i++) table->state[i] = i + 1;
 
-  for (uint32_t idx = 0; idx < old_size; idx++) {
+  for (int idx = 0; idx < old_size; idx++) {
     StringHashEntry *entry, **ptr = table->entries + idx;
     while ((entry = *ptr)) {
       const uint32_t new_idx = entry->hash % new_size;

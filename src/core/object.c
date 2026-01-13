@@ -5,17 +5,116 @@
 #include <stdlib.h>
 #include <string.h>
 
-static struct {
-  unsigned capacity, size;
-  GeomObject *vector;
-  StringHashTable hash_table;
-} objects;
+typedef struct {
+  StringHashTable hash;
+  GeomSparseArray array;
+} GeomDict;
 
-static struct {
-  struct {
-    Color point, circle, line;
-  } color;
-} default_option;
+static GeomDict points, circles, lines;
+
+static inline void geom_dict_init(GeomDict *dict, const int init_size) {
+  string_hash_init(&dict->hash, init_size);
+  dict->array.cap = init_size;
+  dict->array.size = 0;
+  dict->array.state = string_hash_get_state(&dict->hash);
+  dict->array.data = calloc(init_size, sizeof(GeomObject));
+}
+
+static inline void geom_dict_free(const GeomDict *dict) {
+  free(dict->array.data);
+  string_hash_free(&dict->hash);
+}
+
+static void get_default_name(char *name) {
+  static unsigned int id = 0;
+  sprintf(name, "$%05u", id++);
+}
+
+static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
+  if (dict->array.size++ == dict->array.cap) {
+    void *new_buff = realloc(dict->array.data,
+                             (dict->array.cap *= 2) * sizeof(GeomObject));
+    if (new_buff == NULL) return NULL;
+    dict->array.data = new_buff;
+    string_hash_resize(&dict->hash, dict->array.cap);
+    dict->array.state = string_hash_get_state(&dict->hash);
+  }
+  const int idx = string_hash_alloc_id(&dict->hash);
+  GeomObject *obj = dict->array.data + idx;
+  if (key == NULL) get_default_name(obj->name);
+  else memcpy(obj->name, key, sizeof(obj->name));
+  string_hash_insert(&dict->hash, obj->name, idx);
+  return obj;
+}
+
+void object_module_init() {
+  geom_dict_init(&points, 128);
+  geom_dict_init(&circles, 32);
+  geom_dict_init(&lines, 64);
+  point_module_init(256);
+}
+
+void object_module_cleanup() {
+  geom_dict_free(&points);
+  geom_dict_free(&circles);
+  geom_dict_free(&lines);
+  point_module_cleanup();
+}
+
+GeomObject *object_find(const ObjectType type, const char *name) {
+  int idx;
+  switch (type) {
+  case UNKNOWN:
+    return NULL;
+  case ANY:
+    idx = string_hash_find(&points.hash, name);
+    if (idx != -1) return points.array.data + idx;
+    idx = string_hash_find(&circles.hash, name);
+    if (idx != -1) return circles.array.data + idx;
+  default: // LINE, RAY, SEG
+    idx = string_hash_find(&lines.hash, name);
+    return idx == -1 ? NULL : lines.array.data + idx;
+  case POINT:
+    idx = string_hash_find(&points.hash, name);
+    return idx == -1 ? NULL : points.array.data + idx;
+  case CIRCLE:
+    idx = string_hash_find(&circles.hash, name);
+    return idx == -1 ? NULL : circles.array.data + idx;
+  }
+}
+
+GeomObject *object_create(const ObjectType type, PointObject *pt1,
+                          PointObject *pt2, const char *name, const int color,
+                          const int show) {
+  GeomObject *obj;
+  switch (type) {
+  case POINT:
+    obj = geom_dict_insert(&points, name);
+    break;
+  case CIRCLE:
+    obj = geom_dict_insert(&circles, name);
+    break;
+  default:
+    obj = geom_dict_insert(&lines, name);
+  }
+  obj->type = type;
+  obj->show = show;
+  obj->color = color;
+  obj->pt1 = pt1;
+  obj->pt2 = pt2;
+  return obj;
+}
+
+const GeomSparseArray *get_object_array(const ObjectType type) {
+  switch (type) {
+  case POINT:
+    return &points.array;
+  case CIRCLE:
+    return &circles.array;
+  default:
+    return &lines.array;
+  }
+}
 
 ObjectType get_type_from_str(const char *str) {
   uint64_t hash = 0; // clang-format off
@@ -30,108 +129,6 @@ ObjectType get_type_from_str(const char *str) {
   } // clang-format on
 }
 
-int get_coord_from_str(const char *str, Vector2 *coord) {
+bool get_coord_from_str(const char *str, Vec2 *coord) {
   return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
-}
-
-static void get_default_name(char *name) {
-  static unsigned int id = 0;
-  sprintf(name, "$%05u", id++);
-}
-
-void object_module_init() {
-  default_option.color.point = DARKBLUE;
-  default_option.color.circle = GRAY;
-  default_option.color.line = GRAY;
-
-  const unsigned init_size = 256;
-  objects.capacity = init_size;
-  objects.size = 0;
-  objects.vector = malloc(init_size * sizeof(GeomObject));
-  string_hash_init(&objects.hash_table, init_size);
-  point_module_init(init_size * 2);
-}
-
-void object_module_cleanup() {
-  free(objects.vector);
-  string_hash_free(&objects.hash_table);
-  point_module_cleanup();
-}
-
-GeomObject *object_find(const ObjectType type, const char *name) {
-  const int idx = string_hash_find(&objects.hash_table, name);
-  GeomObject *obj = objects.vector + idx;
-  return idx == -1 || (type != ANY && obj->type != type) ? NULL : obj;
-}
-
-GeomObject *object_create(const ObjectType type, PointObject *pt1,
-                          PointObject *pt2, const char *name, const int color,
-                          const int show) {
-  if (objects.size++ == objects.capacity) {
-    void *new_buff = realloc(objects.vector,
-                             (objects.capacity *= 2) * sizeof(GeomObject));
-    if (new_buff == NULL) return NULL;
-    objects.vector = new_buff;
-    string_hash_resize(&objects.hash_table, objects.capacity);
-  }
-
-  const int id = string_hash_alloc_id(&objects.hash_table);
-  GeomObject *obj = objects.vector + id;
-  if (name == NULL) get_default_name(obj->name);
-  else memcpy(obj->name, name, sizeof(obj->name));
-  string_hash_insert(&objects.hash_table, obj->name, id);
-
-  obj->type = type;
-  obj->show = show;
-  obj->color = color;
-  obj->pt1 = pt1;
-  obj->pt2 = pt2;
-  return obj;
-}
-
-static inline Color to_raylib_color(const int color) {
-  // little-endian
-  return (Color){(unsigned)color >> 16, (unsigned)color >> 8, color, 255};
-}
-
-static inline Vector2 get_end_point(const Vector2 p, const Vector2 q) {
-  const Vector2 v = Vector2Subtract(q, p);
-  const float norm = Vector2Length(v);
-  if (norm == 0) return p;
-  const float scale = 4096.f / norm;
-  return (Vector2){p.x + v.x * scale, p.y + v.y * scale};
-}
-
-void object_draw_all() {
-#define GET_RAYLIB_COLOR(type_, color_) ((color_) == -1 ? default_option.color.type_ : to_raylib_color(color_))
-
-  int i;
-  string_hash_traverse(objects.hash_table, i) {
-    const GeomObject *obj = objects.vector + i;
-    const Vector2 *p = &obj->pt1->coord;
-    const Vector2 *q = &obj->pt2->coord;
-    switch (obj->type) {
-    case POINT:
-      DrawCircleV(*p, 2, GET_RAYLIB_COLOR(point, obj->color));
-      break;
-    case CIRCLE:
-      DrawCircleLinesV(*p, Vector2Distance(*p, *q),
-                       GET_RAYLIB_COLOR(circle, obj->color));
-      break;
-    case LINE:
-      DrawLineV(get_end_point(*p, *q), get_end_point(*q, *p),
-                GET_RAYLIB_COLOR(line, obj->color));
-      break;
-    case RAY:
-      DrawLineV(*p, get_end_point(*p, *q),
-                GET_RAYLIB_COLOR(line, obj->color));
-      break;
-    case SEG:
-      DrawLineV(*p, *q, GET_RAYLIB_COLOR(line, obj->color));
-      break;
-    default:
-      break;
-    }
-  }
-#undef GET_DEFAULT_COLOR
 }

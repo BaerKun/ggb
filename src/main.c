@@ -8,15 +8,15 @@ int WINDOW_HEIGHT = 600;
 
 int main() {
   core_init();
-  SetTraceLogLevel(LOG_ERROR);
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "ggb");
   SetTargetFPS(60);
+  board_init();
 
   while (!WindowShouldClose()) {
     console_listen();
     BeginDrawing();
     ClearBackground(WHITE);
-    board_draw();
+    board_draw_geom_objs();
     console_draw(0, WINDOW_HEIGHT - 100, WINDOW_WIDTH, 100);
     EndDrawing();
   }

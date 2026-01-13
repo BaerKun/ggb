@@ -1,9 +1,7 @@
 #ifndef GGB_BOARD_H
 #define GGB_BOARD_H
 
-static inline void board_draw() {
-  void object_draw_all();
-  object_draw_all();
-}
+void board_init();
+void board_draw_geom_objs();
 
 #endif //GGB_BOARD_H

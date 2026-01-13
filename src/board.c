@@ -13,6 +13,11 @@ void board_init() {
   default_option.color.point = DARKBLUE;
   default_option.color.circle = GRAY;
   default_option.color.line = GRAY;
+  object_module_init();
+}
+
+void board_cleanup() {
+  object_module_cleanup();
 }
 
 static inline Color to_raylib_color(const int color) {

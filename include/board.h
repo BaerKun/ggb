@@ -3,5 +3,6 @@
 
 void board_init();
 void board_draw_geom_objs();
+void board_cleanup();
 
 #endif //GGB_BOARD_H

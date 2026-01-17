@@ -2,5 +2,6 @@
 BasedOnStyle: LLVM
 
 ColumnLimit: 80
+SortIncludes: false
 AllowShortLoopsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: true

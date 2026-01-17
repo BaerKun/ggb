@@ -1,9 +1,15 @@
-#include "raylib.h"
 #include "object.h"
 #include "str_hash.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+
+struct GeomSparseArray_{
+  int cap, size;
+  uint64_t *bitmap;
+  GeomObject *data;
+};
 
 typedef struct {
   StringHashTable hash;
@@ -16,42 +22,54 @@ static inline void geom_dict_init(GeomDict *dict, const int init_size) {
   string_hash_init(&dict->hash, init_size);
   dict->array.cap = init_size;
   dict->array.size = 0;
-  dict->array.state = string_hash_get_state(&dict->hash);
+  dict->array.bitmap = calloc(init_size / 8, 1);
   dict->array.data = calloc(init_size, sizeof(GeomObject));
 }
 
 static inline void geom_dict_free(const GeomDict *dict) {
+  free(dict->array.bitmap);
   free(dict->array.data);
   string_hash_free(&dict->hash);
 }
 
 static void get_default_name(char *name) {
-  static unsigned int id = 0;
+  static unsigned int id = 1;
   sprintf(name, "$%05u", id++);
 }
 
 static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
-  if (dict->array.size++ == dict->array.cap) {
-    void *new_buff = realloc(dict->array.data,
-                             (dict->array.cap *= 2) * sizeof(GeomObject));
-    if (new_buff == NULL) return NULL;
-    dict->array.data = new_buff;
-    string_hash_resize(&dict->hash, dict->array.cap);
-    dict->array.state = string_hash_get_state(&dict->hash);
+  GeomSparseArray *array = &dict->array;
+  if (array->size == array->cap) {
+    array->cap *= 2;
+    string_hash_resize(&dict->hash, array->cap);
+
+    void *new_memory = realloc(array->bitmap, array->cap / 8);
+    array->bitmap = new_memory;
+    memset(array->bitmap + array->size / 8, 0, array->cap / 16);
+
+    new_memory = realloc(array->data, array->cap * sizeof(GeomObject));
+    dict->array.data = new_memory;
   }
+
   const int idx = string_hash_alloc_id(&dict->hash);
-  GeomObject *obj = dict->array.data + idx;
-  if (key == NULL) get_default_name(obj->name);
-  else memcpy(obj->name, key, sizeof(obj->name));
+  GeomObject *obj = array->data + idx;
+  if (key == NULL) {
+    get_default_name(obj->name);
+  } else {
+    memcpy(obj->name, key, sizeof(obj->name));
+  }
   string_hash_insert(&dict->hash, obj->name, idx);
+
+  array->bitmap[idx >> 6] |= 1llu << (idx & 63);
+  array->size++;
   return obj;
 }
 
 void object_module_init() {
-  geom_dict_init(&points, 128);
-  geom_dict_init(&circles, 32);
-  geom_dict_init(&lines, 64);
-  point_module_init(256);
+  geom_dict_init(&points, 256);
+  geom_dict_init(&circles, 64);
+  geom_dict_init(&lines, 128);
+  point_module_init(512);
 }
 
 void object_module_cleanup() {
@@ -113,6 +131,22 @@ const GeomSparseArray *get_object_array(const ObjectType type) {
     return &circles.array;
   default:
     return &lines.array;
+  }
+}
+
+void object_array_traverse(const GeomSparseArray *array, void (*callback)(const GeomObject *)) {
+  for (int i = 0; i < array->cap; i += 64) {
+    uint64_t bitmap = array->bitmap[i >> 6];
+    while (bitmap) {
+#if defined(__GNUC__) || defined(__clang__)
+      const uint64_t j = __builtin_ctzll(bitmap);
+#elif defined(_MSC_VER)
+      uint64_t j;
+      _BitScanForward64(&j, bitmap);
+#endif
+      callback(array->data + (i | j));
+      bitmap &= bitmap - 1;
+    }
   }
 }
 

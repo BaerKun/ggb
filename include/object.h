@@ -1,14 +1,12 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include <stdbool.h>
 #include "point.h"
+#include <stdbool.h>
 
 #define OBJECT_NAME_MAX_LEN 15
 
-typedef enum {
-  UNKNOWN = -1, ANY, POINT, CIRCLE, LINE, RAY, SEG
-} ObjectType;
+typedef enum { UNKNOWN = -1, ANY, POINT, CIRCLE, LINE, RAY, SEG } ObjectType;
 
 typedef struct {
   char name[OBJECT_NAME_MAX_LEN + 1];
@@ -17,11 +15,7 @@ typedef struct {
   PointObject *pt1, *pt2;
 } GeomObject;
 
-typedef struct {
-  int cap, size;
-  const int *state; // -1 -> used
-  GeomObject *data;
-} GeomSparseArray;
+typedef struct GeomSparseArray_ GeomSparseArray;
 
 bool may_be_coord(const char *str);
 ObjectType get_type_from_str(const char *str);
@@ -38,5 +32,7 @@ GeomObject *object_create(ObjectType type, PointObject *pt1, PointObject *pt2,
 
 // type: POINT / CIRCLE / (LINE+RAY+SEG)
 const GeomSparseArray *get_object_array(ObjectType type);
+void object_array_traverse(const GeomSparseArray *array,
+                           void (*callback)(const GeomObject *));
 
-#endif //OBJECT_H
+#endif // OBJECT_H

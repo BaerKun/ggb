@@ -16,14 +16,14 @@ struct PointObject_ {
   AdjacencyList *successors;
 
   int indegree;
-  Vec2 (*constraint)(int, const PointObject **);
+  Vec2 (*constraint)(int, PointObject **);
   const PointObject *predecessors[];
 };
 
 typedef struct {
   int argc;
   PointObject **argv;
-  Vec2 (*callback)(int, const PointObject **);
+  Vec2 (*callback)(int, PointObject **);
 } Constraint;
 
 void point_module_init(unsigned init_size);

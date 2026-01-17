@@ -23,10 +23,7 @@ typedef struct {
   GeomObject *data;
 } GeomSparseArray;
 
-static inline bool may_be_coord(const char *str) {
-  return *str == '-' || *str == '+' || (*str >= '0' && *str <= '9');
-}
-
+bool may_be_coord(const char *str);
 ObjectType get_type_from_str(const char *str);
 bool get_coord_from_str(const char *str, Vec2 *coord);
 

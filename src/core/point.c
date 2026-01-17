@@ -13,7 +13,7 @@ void point_module_cleanup() {
 
 PointObject *point_create(const Vec2 coord, const Constraint cons) {
   PointObject *pt = malloc(sizeof(PointObject) + sizeof(PointObject *) * cons.argc);
-  pt->coord = coord;
+  pt->coord = cons.argc == 0 ? coord : cons.callback(cons.argc, cons.argv);
   pt->indegree = cons.argc;
   pt->constraint = cons.callback;
   pt->successors = NULL;

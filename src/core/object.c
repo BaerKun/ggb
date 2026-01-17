@@ -116,6 +116,10 @@ const GeomSparseArray *get_object_array(const ObjectType type) {
   }
 }
 
+bool may_be_coord(const char *str) {
+  return *str == '-' || *str == '+' || (*str >= '0' && *str <= '9');
+}
+
 ObjectType get_type_from_str(const char *str) {
   uint64_t hash = 0; // clang-format off
   for (int i = 0; *str && i < 8; ++i) hash = (hash << 8) | *str++;

@@ -1,6 +1,7 @@
 #include "commandline.h"
 #include "str_hash.h"
 #include "command.h"
+#include "message.h"
 
 #define ARGV_SIZE 24
 
@@ -17,7 +18,7 @@ CommandMapEntry cmd_map[] = {
     // {"hide", hide},
     // {"move-pt", move_pt},
     {"load-src", load_src},
-    // {"midpoint", midpoint}
+    {"midpoint", midpoint}
 };
 
 const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));
@@ -67,8 +68,7 @@ int commandline_parse(char *line) {
   const char *cmd = argv[0];
   const int cmd_id = string_hash_find(&cmd_hash, cmd);
   if (cmd_id == -1) {
-    // fprintf(stderr, "Error: command not found.\n");
-    return 1;
+    throw_error_fmt(UNKNOWN_COMMAND, "unknown command '%s'", cmd);
   }
   return cmd_map[cmd_id].func(argc, argv);
 }

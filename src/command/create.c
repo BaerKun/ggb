@@ -1,5 +1,6 @@
-#include "object.h"
 #include "argparse.h"
+#include "message.h"
+#include "object.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -8,11 +9,8 @@ int create(const int argc, const char **argv) {
   static int color, hide;
   static struct argparse parse;
   static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name),
-      OPT_INTEGER('c', "color", &color),
-      OPT_BOOLEAN('h', "hide", &hide),
-      OPT_END()
-  };
+      OPT_STRING('n', "name", &name), OPT_INTEGER('c', "color", &color),
+      OPT_BOOLEAN('h', "hide", &hide), OPT_END()};
 
   name = NULL;
   color = -1;
@@ -21,31 +19,28 @@ int create(const int argc, const char **argv) {
   const int remaining = argparse_parse(&parse, argc, argv);
 
   if (remaining == 0) {
-    fprintf(stderr, "Error: type not provided.");
-    return 1;
+    throw_error(MISS_PARAMETER, "missing type parameter.");
   }
 
   if (name != NULL) {
-    if (object_find(ANY, name) != NULL) {
-      fprintf(stderr, "Error: name '%s' already exists.", name);
-      return 2;
-    } else if (strlen(name) > OBJECT_NAME_MAX_LEN) {
-      fprintf(stderr, "Error: name '%s' is too long.(<= %d)", name,
-              OBJECT_NAME_MAX_LEN);
-      return 3;
+    if (strlen(name) > OBJECT_NAME_MAX_LEN) {
+      throw_error_fmt(NAME_TOO_LONG, "name '%s' is too long. ( <= %d )", name,
+                      OBJECT_NAME_MAX_LEN);
+    } else if (object_find(ANY, name) != NULL) {
+      throw_error_fmt(NAME_EXISTS, "name '%s' already exists.", name);
     }
   }
 
   const char *type_str = argv[0];
   const ObjectType type = get_type_from_str(type_str);
   if (type == UNKNOWN) {
-    fprintf(stderr, "Error: unknown type '%s'.", type_str);
-    return 4;
+    throw_error_fmt(UNKNOWN_PARAMETER, "unknown type '%s'.", type_str);
   }
 
-  if ((type == POINT && remaining == 1) || (type != POINT && remaining <= 2)) {
-    fprintf(stderr, "Error: miss point arg for '%s'.", type_str);
-    return 5;
+  if (type == POINT && remaining == 1) {
+    throw_error(MISS_PARAMETER, "miss coordinate for '%s'.");
+  } else if (type != POINT && remaining <= 2) {
+    throw_error_fmt(MISS_PARAMETER, "2 points needed for '%s'.", type_str);
   }
 
   Vector2 coord;
@@ -81,11 +76,9 @@ int create(const int argc, const char **argv) {
 
 coord_err:
   point_delete(tmp);
-  fprintf(stderr, "Error: '%s' is an invalid coordinate.", pt_str);
-  return 6;
+  throw_error_fmt(INVALID_PARAMETER, "'%s' is an invalid coordinate.", pt_str);
 
 name_not_exist:
   point_delete(tmp);
-  fprintf(stderr, "Error: name '%s' does not exist.", pt_str);
-  return 7;
+  throw_error_fmt(OBJECT_NOT_EXISTS, "point '%s' not exists.", pt_str);
 }

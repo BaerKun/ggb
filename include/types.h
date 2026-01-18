@@ -2,11 +2,15 @@
 #define GGB_MATH_H
 
 #include "raymath.h"
-
-#define INLINE static inline
+#include <stdint.h>
 
 typedef Vector2 Vec2;
 typedef Vector3 Vec3;
+typedef int64_t GeomInt;
+typedef int64_t GeomId;
+typedef uint64_t GeomSize;
+
+#define INLINE static inline
 
 // clang-format off
 INLINE Vec2 vec2_add(Vec2 v1, Vec2 v2) { return Vector2Add(v1, v2); }

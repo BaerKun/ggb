@@ -3,9 +3,9 @@
 #include "object.h"
 #include <stddef.h>
 
-static Vec2 callback(int argc, PointObject **argv) {
-  const Vec2 p1 = argv[0]->coord;
-  const Vec2 p2 = argv[1]->coord;
+static Vec2 callback(GeomId argc, const Vec2 *argv) {
+  const Vec2 p1 = argv[0];
+  const Vec2 p2 = argv[1];
   const Vec2 res = {(p1.x + p2.x) / 2.f, (p1.y + p2.y) / 2.f};
   return res;
 }
@@ -36,8 +36,8 @@ int midpoint(const int argc, const char **argv) {
   const GeomObject *obj2 = object_find(POINT, obj_name);
   if (obj2 == NULL) goto point_not_exists;
 
-  PointObject *cons_argv[2] = {obj1->pt1, obj2->pt1};
-  PointObject *pt = point_create((Vec2){}, (Constraint){2, cons_argv, callback});
+  GeomId cons_argv[2] = {obj1->pt1, obj2->pt1};
+  GeomId pt = point_create((Vec2){}, (Constraint){2, cons_argv, callback});
   object_create(POINT, pt, NULL, name, color, !hide);
 
   point_not_exists:

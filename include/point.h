@@ -1,34 +1,26 @@
 #ifndef GGB_POINT_H
 #define GGB_POINT_H
 
-#include "math_.h"
+#include "types.h"
 
 typedef struct PointObject_ PointObject;
-typedef struct AdjacencyList_ AdjacencyList;
-
-struct AdjacencyList_ {
-  PointObject *pt;
-  AdjacencyList *next;
-};
-
 struct PointObject_ {
   Vec2 coord;
-  AdjacencyList *successors;
-
-  int indegree;
-  Vec2 (*constraint)(int, PointObject **);
-  const PointObject *predecessors[];
+  GeomInt n_dep;
+  Vec2 (*eval)(GeomInt, const Vec2 *);
+  GeomId deps[6];
 };
 
 typedef struct {
-  int argc;
-  PointObject **argv;
-  Vec2 (*callback)(int, PointObject **);
+  GeomInt n_pts;
+  GeomId *pts;
+  Vec2 (*eval)(GeomInt, const Vec2 *);
 } Constraint;
 
-void point_module_init(unsigned init_size);
+void point_module_init(GeomSize init_size);
 void point_module_cleanup();
-PointObject *point_create(Vec2 coord, Constraint cons);
-void point_delete(PointObject *pt);
+GeomId point_create(Vec2 coord, Constraint cons);
+Vec2 point_get_coord(GeomId id);
+void point_delete(GeomId id);
 
-#endif //GGB_POINT_H
+#endif // GGB_POINT_H

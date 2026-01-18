@@ -1,5 +1,5 @@
 #include "raylib.h"
-#include "math_.h"
+#include "types.h"
 #include "board.h"
 #include "object.h"
 
@@ -35,29 +35,31 @@ static inline Vec2 get_end_point(const Vec2 p, const Vec2 q) {
   ((color_) == -1 ? default_option.color.type_ : to_raylib_color(color_))
 
 static void draw_circle(const GeomObject *obj) {
-  DrawCircleLinesV(obj->pt1->coord,
-                   vec2_distance(obj->pt1->coord, obj->pt2->coord),
+  const Vec2 pt1 = point_get_coord(obj->pt1);
+  const Vec2 pt2 = point_get_coord(obj->pt2);
+  DrawCircleLinesV(pt1, vec2_distance(pt1, pt2),
                    GET_RAYLIB_COLOR(circle, obj->color));
 }
 
 static void draw_line(const GeomObject *obj) {
-  const Vec2 p = obj->pt1->coord;
-  const Vec2 q = obj->pt2->coord;
+  const Vec2 pt1 = point_get_coord(obj->pt1);
+  const Vec2 pt2 = point_get_coord(obj->pt2);
   switch (obj->type) {
   case SEG:
-    DrawLineV(p, q, GET_RAYLIB_COLOR(line, obj->color));
+    DrawLineV(pt1, pt2, GET_RAYLIB_COLOR(line, obj->color));
     break;
   case RAY:
-    DrawLineV(p, get_end_point(p, q), GET_RAYLIB_COLOR(line, obj->color));
+    DrawLineV(pt1, get_end_point(pt1, pt2), GET_RAYLIB_COLOR(line, obj->color));
     break;
   default:
-    DrawLineV(get_end_point(p, q), get_end_point(q, p),
+    DrawLineV(get_end_point(pt1, pt2), get_end_point(pt2, pt1),
               GET_RAYLIB_COLOR(line, obj->color));
   }
 }
 
 static void draw_point(const GeomObject *obj) {
-  DrawCircleV(obj->pt1->coord, 2, GET_RAYLIB_COLOR(point, obj->color));
+  DrawCircleV(point_get_coord(obj->pt1), 2,
+              GET_RAYLIB_COLOR(point, obj->color));
 }
 
 #undef GET_DEFAULT_COLOR

@@ -6,13 +6,9 @@
 static int cursor_pos = 0;
 static char commandline[CLI_BUF_SIZE] = {};
 
-void console_init() {
-  commandline_init();
-}
+void console_init() { commandline_init(); }
 
-void console_cleanup() {
-  commandline_cleanup();
-}
+void console_cleanup() { commandline_cleanup(); }
 
 void console_listen() {
   for (int key; (key = GetCharPressed()) > 0;) {

@@ -3,9 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
-struct GeomSparseArray_{
+struct GeomSparseArray_ {
   int cap, size;
   uint64_t *bitmap;
   GeomObject *data;
@@ -101,9 +100,9 @@ GeomObject *object_find(const ObjectType type, const char *name) {
   }
 }
 
-GeomObject *object_create(const ObjectType type, PointObject *pt1,
-                          PointObject *pt2, const char *name, const int color,
-                          const int show) {
+GeomObject *object_create(const ObjectType type, const GeomId pt1,
+                          const GeomId pt2, const char *name,
+                          const int32_t color, const bool show) {
   GeomObject *obj;
   switch (type) {
   case POINT:
@@ -134,7 +133,8 @@ const GeomSparseArray *get_object_array(const ObjectType type) {
   }
 }
 
-void object_array_traverse(const GeomSparseArray *array, void (*callback)(const GeomObject *)) {
+void object_array_traverse(const GeomSparseArray *array,
+                           void (*callback)(const GeomObject *)) {
   for (int i = 0; i < array->cap; i += 64) {
     uint64_t bitmap = array->bitmap[i >> 6];
     while (bitmap) {

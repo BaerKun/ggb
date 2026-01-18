@@ -3,6 +3,7 @@
 
 #include "point.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 #define OBJECT_NAME_MAX_LEN 15
 
@@ -11,8 +12,9 @@ typedef enum { UNKNOWN = -1, ANY, POINT, CIRCLE, LINE, RAY, SEG } ObjectType;
 typedef struct {
   char name[OBJECT_NAME_MAX_LEN + 1];
   ObjectType type;
-  int show, color;
-  PointObject *pt1, *pt2;
+  int32_t color;
+  bool show;
+  GeomId pt1, pt2;
 } GeomObject;
 
 typedef struct GeomSparseArray_ GeomSparseArray;
@@ -27,8 +29,8 @@ void object_draw_all();
 
 // type: ANY / POINT / CIRCLE / (LINE+RAY+SEG)
 GeomObject *object_find(ObjectType type, const char *name);
-GeomObject *object_create(ObjectType type, PointObject *pt1, PointObject *pt2,
-                          const char *name, int color, int show);
+GeomObject *object_create(ObjectType type, GeomId pt1, GeomId pt2,
+                          const char *name, int32_t color, bool show);
 
 // type: POINT / CIRCLE / (LINE+RAY+SEG)
 const GeomSparseArray *get_object_array(ObjectType type);

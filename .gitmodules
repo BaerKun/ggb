@@ -2,3 +2,6 @@
 	path = 3rdparty/raylib
 	url = git@github.com:raysan5/raylib.git
 	shallow = true
+[submodule "3rdparty/cgraph"]
+	path = 3rdparty/cgraph
+	url = git@github.com:BaerKun/cgraph.git

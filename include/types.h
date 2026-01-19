@@ -4,6 +4,10 @@
 #include "raymath.h"
 #include <stdint.h>
 
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
+
 typedef Vector2 Vec2;
 typedef Vector3 Vec3;
 typedef int64_t GeomInt;

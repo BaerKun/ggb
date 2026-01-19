@@ -1,11 +1,13 @@
 #include "point.h"
 #include "cgraph/graph.h"
+#include "cgraph/iter.h"
+
 #include <stdlib.h>
 
 typedef struct {
-  GeomSize capacity, size;
+  GeomSize cap;
   GeomSize front, rear;
-  PointObject **elements;
+  GeomId *elems;
 } Queue;
 
 static Queue queue;
@@ -15,20 +17,21 @@ static PointObject *points;
 void point_module_init(const GeomSize init_size) {
   cgraphInit(&graph, true, init_size, init_size * 4);
   points = malloc(init_size * sizeof(PointObject));
-  queue.capacity = init_size;
-  queue.size = queue.front = queue.rear = 0;
-  queue.elements = malloc(sizeof(PointObject *) * init_size);
+  queue.cap = init_size;
+  queue.front = queue.rear = 0;
+  queue.elems = malloc(sizeof(GeomId) * init_size);
 }
 
 void point_module_cleanup() {
   cgraphRelease(&graph);
   free(points);
-  free(queue.elements);
+  free(queue.elems);
 }
 
 Vec2 point_get_coord(const GeomId id) { return points[id].coord; }
 
 static void point_coord_calc(PointObject *pt) {
+  if (pt->eval == NULL) return;
   Vec2 pred[6];
   for (GeomInt i = 0; i < pt->n_dep; i++) pred[i] = points[pt->deps[i]].coord;
   pt->coord = pt->eval(pt->n_dep, pred);
@@ -46,35 +49,40 @@ GeomId point_create(const Vec2 coord, const Constraint cons) {
     pt->deps[i] = cons.pts[i];
   }
 
-  if (pt->eval) point_coord_calc(pt);
+  point_coord_calc(pt);
   return id;
 }
 
 void point_delete(const GeomId id) {
+  if (id < 0) return;
   const PointObject *pt = points + id;
   for (GeomInt i = 0; i < pt->n_dep; i++) cgraphDeleteEdge(&graph, pt->deps[i]);
   cgraphDeleteVert(&graph, id);
 }
 
-static inline void enqueue(PointObject *const element) {
-  queue.elements[queue.rear] = element;
-  if (++queue.rear == queue.capacity) queue.rear = 0;
-  queue.size++;
-}
+void point_move(const GeomId *pts, const Vec2 *dst, const GeomSize count) {
+  queue.front = queue.rear = 0;
+  if (graph.vertNum > queue.cap) {
+    // resize
+    queue.cap *= 2;
+    void *buff = realloc(queue.elems, sizeof(GeomId) * queue.cap);
+    if (buff == NULL) return;
+    queue.elems = buff;
+  }
 
-static inline PointObject *dequeue() {
-  PointObject *const front = queue.elements[queue.front];
-  if (++queue.front == queue.capacity) queue.front = 0;
-  queue.size--;
-  return front;
-}
+  for (GeomSize i = 0; i < count; i++) {
+    queue.elems[queue.rear++] = pts[i];
+    points[pts[i]].coord = dst[i];
+  }
 
-static inline void queue_resize(const unsigned new_cap) {
-  if (new_cap <= queue.capacity) return;
-  queue.capacity = new_cap + queue.capacity; // * 2
-  void *buff = realloc(queue.elements, sizeof(PointObject *) * new_cap);
-  if (buff == NULL) return;
-  queue.elements = buff;
+  CGraphIter *iter = cgraphGetIter(&graph);
+  while (queue.front != queue.rear) {
+    const GeomId pt = queue.elems[queue.front++];
+    GeomId eid, to;
+    while (cgraphIterNextEdge(iter, pt, &eid, &to)) {
+      queue.elems[queue.rear++] = to;
+      point_coord_calc(points + to);
+    }
+  }
+  cgraphIterRelease(iter);
 }
-
-void point_move(PointObject **pts, const Vec2 *dst, const int count) {}

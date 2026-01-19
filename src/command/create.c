@@ -1,7 +1,6 @@
 #include "argparse.h"
 #include "message.h"
 #include "object.h"
-#include <stdio.h>
 #include <string.h>
 
 int create(const int argc, const char **argv) {
@@ -44,7 +43,7 @@ int create(const int argc, const char **argv) {
   }
 
   Vector2 coord;
-  PointObject *pt1, *pt2, *tmp = NULL;
+  GeomId pt1, pt2, tmp = -1;
 
   const char *pt_str = argv[1];
   if (may_be_coord(pt_str)) {
@@ -57,7 +56,7 @@ int create(const int argc, const char **argv) {
   }
 
   if (type == POINT) {
-    object_create(type, pt1, NULL, name, color, !hide);
+    object_create(type, pt1, -1, name, color, !hide);
     return 0;
   }
 

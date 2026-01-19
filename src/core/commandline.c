@@ -16,7 +16,7 @@ CommandMapEntry cmd_map[] = {
     {"create", create},
     // {"show", show},
     // {"hide", hide},
-    // {"move-pt", move_pt},
+    {"move-pt", move_pt},
     {"load-src", load_src},
     {"midpoint", midpoint}
 };

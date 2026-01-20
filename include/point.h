@@ -6,6 +6,7 @@
 typedef struct PointObject_ PointObject;
 struct PointObject_ {
   Vec2 coord;
+  GeomInt shared;
   GeomInt n_dep;
   Vec2 (*eval)(GeomInt, const Vec2 *);
   GeomId deps[6];
@@ -21,7 +22,8 @@ void point_module_init(GeomSize init_size);
 void point_module_cleanup();
 GeomId point_create(Vec2 coord, Constraint cons);
 Vec2 point_get_coord(GeomId id);
-void point_delete(GeomId id);
+void point_ref(GeomId id);
+void point_unref(GeomId id);
 void point_move(const GeomId *pts, const Vec2 *dst, GeomSize count);
 
 #endif // GGB_POINT_H

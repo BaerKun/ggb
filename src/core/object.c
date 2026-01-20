@@ -107,12 +107,17 @@ GeomObject *object_create(const ObjectType type, const GeomId pt1,
   switch (type) {
   case POINT:
     obj = geom_dict_insert(&points, name);
+    point_ref(pt1);
     break;
   case CIRCLE:
     obj = geom_dict_insert(&circles, name);
+    point_ref(pt1);
+    point_ref(pt2);
     break;
   default:
     obj = geom_dict_insert(&lines, name);
+    point_ref(pt1);
+    point_ref(pt2);
   }
   obj->type = type;
   obj->show = show;

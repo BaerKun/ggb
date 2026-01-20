@@ -74,10 +74,10 @@ int create(const int argc, const char **argv) {
   return 0;
 
 coord_err:
-  point_delete(tmp);
+  point_unref(tmp);
   throw_error_fmt(INVALID_PARAMETER, "'%s' is an invalid coordinate.", pt_str);
 
 name_not_exist:
-  point_delete(tmp);
+  point_unref(tmp);
   throw_error_fmt(OBJECT_NOT_EXISTS, "point '%s' not exists.", pt_str);
 }

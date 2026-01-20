@@ -4,18 +4,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct GeomSparseArray_ {
+typedef struct  {
   int cap, size;
   uint64_t *bitmap;
   GeomObject *data;
-};
+}GeomSparseArray;
 
 typedef struct {
   StringHashTable hash;
   GeomSparseArray array;
 } GeomDict;
 
-static GeomDict points, circles, lines;
+static GeomDict objects;
 
 static inline void geom_dict_init(GeomDict *dict, const int init_size) {
   string_hash_init(&dict->hash, init_size);
@@ -65,81 +65,38 @@ static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
 }
 
 void object_module_init() {
-  geom_dict_init(&points, 256);
-  geom_dict_init(&circles, 64);
-  geom_dict_init(&lines, 128);
+  geom_dict_init(&objects, 256);
   point_module_init(512);
 }
 
 void object_module_cleanup() {
-  geom_dict_free(&points);
-  geom_dict_free(&circles);
-  geom_dict_free(&lines);
+  geom_dict_free(&objects);
   point_module_cleanup();
 }
 
 GeomObject *object_find(const ObjectType type, const char *name) {
-  int idx;
-  switch (type) {
-  case UNKNOWN:
-    return NULL;
-  case ANY:
-    idx = string_hash_find(&points.hash, name);
-    if (idx != -1) return points.array.data + idx;
-    idx = string_hash_find(&circles.hash, name);
-    if (idx != -1) return circles.array.data + idx;
-  default: // LINE, RAY, SEG
-    idx = string_hash_find(&lines.hash, name);
-    return idx == -1 ? NULL : lines.array.data + idx;
-  case POINT:
-    idx = string_hash_find(&points.hash, name);
-    return idx == -1 ? NULL : points.array.data + idx;
-  case CIRCLE:
-    idx = string_hash_find(&circles.hash, name);
-    return idx == -1 ? NULL : circles.array.data + idx;
-  }
+  const GeomInt id = string_hash_find(&objects.hash, name);
+  GeomObject *obj = objects.array.data + id;
+  if (id == -1 || (type != ANY && type != obj->type)) return NULL;
+  return obj;
 }
 
 GeomObject *object_create(const ObjectType type, const GeomId pt1,
                           const GeomId pt2, const char *name,
                           const int32_t color, const bool show) {
-  GeomObject *obj;
-  switch (type) {
-  case POINT:
-    obj = geom_dict_insert(&points, name);
-    point_ref(pt1);
-    break;
-  case CIRCLE:
-    obj = geom_dict_insert(&circles, name);
-    point_ref(pt1);
-    point_ref(pt2);
-    break;
-  default:
-    obj = geom_dict_insert(&lines, name);
-    point_ref(pt1);
-    point_ref(pt2);
-  }
+  GeomObject *obj = geom_dict_insert(&objects, name);
   obj->type = type;
   obj->show = show;
   obj->color = color;
   obj->pt1 = pt1;
   obj->pt2 = pt2;
+  point_ref(pt1);
+  point_ref(pt2);
   return obj;
 }
 
-const GeomSparseArray *get_object_array(const ObjectType type) {
-  switch (type) {
-  case POINT:
-    return &points.array;
-  case CIRCLE:
-    return &circles.array;
-  default:
-    return &lines.array;
-  }
-}
-
-void object_array_traverse(const GeomSparseArray *array,
-                           void (*callback)(const GeomObject *)) {
+void object_traverse( void (*callback)(const GeomObject *)) {
+  const GeomSparseArray *array = &objects.array;
   for (int i = 0; i < array->cap; i += 64) {
     uint64_t bitmap = array->bitmap[i >> 6];
     while (bitmap) {

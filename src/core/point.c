@@ -69,7 +69,9 @@ static bool queue_empty(const Queue *q) { return q->front == q->rear; }
 static void enqueue(Queue *q, const GeomId id) { q->elems[q->rear++] = id; }
 static GeomId dequeue(Queue *q) { return q->elems[q->front++]; }
 
-void point_ref(const GeomId id) { global.points[id].shared++; }
+void point_ref(const GeomId id) {
+  if (id >= 0) global.points[id].shared++;
+}
 
 void point_unref(const GeomId id) {
   if (id < 0) return;

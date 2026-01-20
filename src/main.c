@@ -15,7 +15,7 @@ int main() {
     console_listen();
     BeginDrawing();
     ClearBackground(WHITE);
-    board_draw_geom_objs();
+    board_draw_update();
     console_draw(0, WINDOW_HEIGHT - 100, WINDOW_WIDTH, 100);
     EndDrawing();
   }

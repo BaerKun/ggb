@@ -25,6 +25,7 @@ void object_module_init();
 void object_module_cleanup();
 void object_draw_all();
 
+void object_delete(const GeomObject *obj);
 GeomObject *object_find(ObjectType type, const char *name);
 GeomObject *object_create(ObjectType type, GeomId pt1, GeomId pt2,
                           const char *name, int32_t color, bool show);

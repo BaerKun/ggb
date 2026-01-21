@@ -39,6 +39,7 @@ int midpoint(const int argc, const char **argv) {
   GeomId cons_argv[2] = {obj1->pt1, obj2->pt1};
   GeomId pt = point_create((Vec2){}, (Constraint){2, cons_argv, callback});
   object_create(POINT, pt, -1, name, color, !hide);
+  return 0;
 
   point_not_exists:
   throw_error_fmt(OBJECT_NOT_EXISTS, "point '%s' does not exists.", obj_name);

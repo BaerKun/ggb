@@ -12,14 +12,13 @@ typedef struct {
   CommandFunction func;
 } CommandMapEntry;
 
-CommandMapEntry cmd_map[] = {
-    {"create", create},
-    // {"show", show},
-    // {"hide", hide},
-    {"move-pt", move_pt},
-    {"load-src", load_src},
-    {"midpoint", midpoint}
-};
+CommandMapEntry cmd_map[] = {{"create", create},
+                             {"delete", delete_},
+                             // {"show", show},
+                             // {"hide", hide},
+                             {"move-pt", move_pt},
+                             {"load-src", load_src},
+                             {"midpoint", midpoint}};
 
 const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));
 static StringHashTable cmd_hash;
@@ -32,9 +31,7 @@ void commandline_init() {
   }
 }
 
-void commandline_cleanup() {
-  string_hash_free(&cmd_hash);
-}
+void commandline_cleanup() { string_hash_free(&cmd_hash); }
 
 static int split_args(char *ptr, const char **argv) {
   int argc = 0, first_letter = 1;

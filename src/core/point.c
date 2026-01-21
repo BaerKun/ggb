@@ -75,7 +75,6 @@ void point_ref(const GeomId id) {
 
 void point_unref(const GeomId id) {
   if (id < 0) return;
-  if (global.points[id].shared == 0) cgraphDeleteVert(&global.graph, id);
   if (--global.points[id].shared != 0) return;
 
   CGraph *graph = &global.graph;
@@ -87,7 +86,7 @@ void point_unref(const GeomId id) {
     cgraphDeleteVert(graph, pt_id);
 
     const PointObject *pt_obj = global.points + pt_id;
-    for (GeomInt i = pt_obj->n_dep; i < pt_obj->n_dep; i++) {
+    for (GeomInt i = 0; i < pt_obj->n_dep; i++) {
       const GeomId dep_id = pt_obj->deps[i];
       PointObject *dep_obj = global.points + dep_id;
       cgraphDeleteEdge(graph, cgraphFindEdgeId(graph, dep_id, pt_id));

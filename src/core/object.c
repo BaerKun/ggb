@@ -64,6 +64,12 @@ static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
   return obj;
 }
 
+static void geom_dict_delete(GeomDict *dict, const char *key) {
+  const GeomId id = string_hash_remove(&dict->hash, key);
+  dict->array.bitmap[id >> 6] ^= 1llu << (id & 63);
+  dict->array.size--;
+}
+
 void object_module_init() {
   geom_dict_init(&objects, 256);
   point_module_init(512);
@@ -93,6 +99,12 @@ GeomObject *object_create(const ObjectType type, const GeomId pt1,
   point_ref(pt1);
   point_ref(pt2);
   return obj;
+}
+
+void object_delete(const GeomObject *obj) {
+  point_unref(obj->pt1);
+  point_unref(obj->pt2);
+  geom_dict_delete(&objects, obj->name);
 }
 
 void object_traverse( void (*callback)(const GeomObject *)) {

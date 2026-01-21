@@ -2,6 +2,7 @@
 #define GGB_COMMAND_H
 
 int create(int argc, const char **argv);
+int delete_(int argc, const char **argv);
 int show(int argc, const char **argv);
 int hide(int argc, const char **argv);
 int move_pt(int argc, const char **argv);

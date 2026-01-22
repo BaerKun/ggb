@@ -3,6 +3,17 @@
 #include "object.h"
 #include <string.h>
 
+static int get_point_from_str(const char *str, GeomId *id, Vec2 *coord) {
+  if (may_be_coord(str)) {
+    if (get_coord_from_str(str, coord)) return 0;
+    throw_error_fmt("'%s' isn't an valid coordinate. must be '%%f,%%f'", str);
+  }
+  const GeomObject *obj = object_find(POINT, str);
+  if (!obj) throw_error_fmt("point '%s' doesn't exist.", str);
+  *id = obj->pt1;
+  return 0;
+}
+
 int create(const int argc, const char **argv) {
   static char *name;
   static int color, hide;
@@ -17,67 +28,45 @@ int create(const int argc, const char **argv) {
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
 
-  if (remaining == 0) {
-    throw_error(MISS_PARAMETER, "missing type parameter.");
-  }
+  int code = 0;
+  if (check_name(name)) code = MSG_ERROR;
 
-  if (name != NULL) {
-    if (strlen(name) > OBJECT_NAME_MAX_LEN) {
-      throw_error_fmt(NAME_TOO_LONG, "name '%s' is too long. ( <= %d )", name,
-                      OBJECT_NAME_MAX_LEN);
-    } else if (object_find(ANY, name) != NULL) {
-      throw_error_fmt(NAME_EXISTS, "name '%s' already exists.", name);
-    }
-  }
+  if (remaining == 0) throw_error("missing type parameter.");
 
   const char *type_str = argv[0];
   const ObjectType type = get_type_from_str(type_str);
   if (type == UNKNOWN) {
-    throw_error_fmt(UNKNOWN_PARAMETER, "unknown type '%s'.", type_str);
-  }
-
-  if (type == POINT && remaining == 1) {
-    throw_error(MISS_PARAMETER, "miss coordinate for '%s'.");
-  } else if (type != POINT && remaining <= 2) {
-    throw_error_fmt(MISS_PARAMETER, "2 points needed for '%s'.", type_str);
-  }
-
-  Vector2 coord;
-  GeomId pt1, pt2, tmp = -1;
-
-  const char *pt_str = argv[1];
-  if (may_be_coord(pt_str)) {
-    if (!get_coord_from_str(pt_str, &coord)) goto coord_err;
-    pt1 = tmp = point_create(coord, (Constraint){});
-  } else {
-    const GeomObject *obj = object_find(POINT, pt_str);
-    if (obj == NULL) goto name_not_exist;
-    pt1 = obj->pt1;
+    throw_error_fmt("unknown type '%s'.", type_str);
   }
 
   if (type == POINT) {
-    object_create(type, pt1, -1, name, color, !hide);
+    if (remaining == 1) {
+      throw_error("'point' need a coordinate( '%%f,%%f' ).");
+    }
+  } else if (remaining <= 2) {
+    if (type == CIRCLE) {
+      throw_error("'circle' need a center and a point on circle.");
+    }
+    throw_error_fmt("'%s' need 2 points.", type_str);
+  }
+
+  Vector2 coord1, coord2;
+  GeomId pt1 = -1, pt2 = -1;
+
+  if (get_point_from_str(argv[1], &pt1, &coord1)) code = MSG_ERROR;
+
+  if (type == POINT) {
+    if (code) return code;
+    if (pt1 == -1) pt1 = point_create(coord1, (Constraint){});
+    object_create(type, pt1, pt2, name, color, !hide);
     return 0;
   }
 
-  pt_str = argv[2];
-  if (may_be_coord(pt_str)) {
-    if (!get_coord_from_str(pt_str, &coord)) goto coord_err;
-    pt2 = point_create(coord, (Constraint){});
-  } else {
-    const GeomObject *obj = object_find(POINT, pt_str);
-    if (obj == NULL) goto name_not_exist;
-    pt2 = obj->pt1;
-  }
+  if (get_point_from_str(argv[2], &pt2, &coord2)) code = MSG_ERROR;
 
+  if (code) return code;
+  if (pt1 == -1) pt1 = point_create(coord1, (Constraint){});
+  if (pt2 == -1) pt2 = point_create(coord2, (Constraint){});
   object_create(type, pt1, pt2, name, color, !hide);
   return 0;
-
-coord_err:
-  point_unref(tmp);
-  throw_error_fmt(INVALID_PARAMETER, "'%s' is an invalid coordinate.", pt_str);
-
-name_not_exist:
-  point_unref(tmp);
-  throw_error_fmt(OBJECT_NOT_EXISTS, "point '%s' not exists.", pt_str);
 }

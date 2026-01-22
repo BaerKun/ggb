@@ -18,13 +18,16 @@ int delete_(const int argc, const char **argv) {
     return 0;
   }
 
+  int code = 0;
   for (int i = 0; i < remaining; i++) {
     const GeomObject *obj = object_find(ANY, argv[i]);
     if (obj == NULL) {
-      throw_error_fmt(OBJECT_NOT_EXISTS, "object '%s' does not exist.",
-                      argv[i]);
+      push_error_fmt("object '%s' does not exist.", argv[i]);
+      code = MSG_ERROR;
+      continue;
     }
     object_delete(obj);
   }
-  return 0;
+
+  return code;
 }

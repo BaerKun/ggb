@@ -24,7 +24,7 @@ static void vertex_resize_callback(const CGraphSize new_cap) {
 void point_module_init(const GeomSize init_size) {
   global.points = malloc(init_size * sizeof(PointObject));
   global.queue.elems = malloc(sizeof(GeomId) * init_size);
-  cgraphInit(&global.graph, true, init_size, init_size * 4);
+  cgraphInit(&global.graph, true, init_size, init_size * 2);
   cgraphSetVertResizeCallback(&global.graph, vertex_resize_callback);
 }
 
@@ -75,7 +75,7 @@ void point_ref(const GeomId id) {
 
 void point_unref(const GeomId id) {
   if (id < 0) return;
-  if (--global.points[id].shared != 0) return;
+  if (--global.points[id].shared > 0) return;
 
   CGraph *graph = &global.graph;
   Queue *queue = &global.queue;

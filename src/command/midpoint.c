@@ -1,7 +1,7 @@
 #include "argparse.h"
 #include "message.h"
 #include "object.h"
-#include <stddef.h>
+#include <string.h>
 
 static Vec2 callback(GeomId argc, const Vec2 *argv) {
   const Vec2 p1 = argv[0];
@@ -24,9 +24,10 @@ int midpoint(const int argc, const char **argv) {
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
 
-  if (remaining < 2) {
-    throw_error(MISS_PARAMETER, "2 points needed for midpoint.");
-  }
+  int code = 0;
+  if (check_name(name)) code = MSG_ERROR;
+
+  if (remaining < 2) throw_error("midpoint need 2 points.");
 
   const char *obj_name = argv[0];
   const GeomObject *obj1 = object_find(POINT, obj_name);
@@ -36,11 +37,13 @@ int midpoint(const int argc, const char **argv) {
   const GeomObject *obj2 = object_find(POINT, obj_name);
   if (obj2 == NULL) goto point_not_exists;
 
+  if (code) return code;
+
   GeomId cons_argv[2] = {obj1->pt1, obj2->pt1};
   GeomId pt = point_create((Vec2){}, (Constraint){2, cons_argv, callback});
   object_create(POINT, pt, -1, name, color, !hide);
   return 0;
 
   point_not_exists:
-  throw_error_fmt(OBJECT_NOT_EXISTS, "point '%s' does not exists.", obj_name);
+  throw_error_fmt("point '%s' doesn't exist.", obj_name);
 }

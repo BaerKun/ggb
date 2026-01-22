@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MESSAGE_STACK_CAPACITY 8
+#define MESSAGE_STACK_CAPACITY 4
 
 typedef struct {
   size_t size, top;
@@ -12,14 +12,14 @@ typedef struct {
 
 static MessageStack stack = {};
 
-void message_push(const MessageType type, const char *format, ...) {
+void message_push(const MessageLevel type, const char *format, ...) {
   va_list args;
   va_start(args, format);
 
   if (stack.top == MESSAGE_STACK_CAPACITY) stack.top = 0;
   if (stack.size != MESSAGE_STACK_CAPACITY) stack.size++;
   Message *msg = stack.msgs + stack.top++;
-  msg->type = type;
+  msg->level = type;
   vsprintf(msg->content, format, args);
   va_end(args);
 }

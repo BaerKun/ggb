@@ -13,7 +13,6 @@ static struct {
 } feedback = {};
 
 void console_init() { commandline_init(); }
-
 void console_cleanup() { commandline_cleanup(); }
 
 void console_listen() {
@@ -41,7 +40,7 @@ void console_draw(const int x, const int y, const int width, const int height) {
   if (msg) {
     const int PREFIX_LEN = 8;
     feedback.enable = true;
-    switch (msg->type & MSG_LEVEL_MASK) {
+    switch (msg->level) {
     case MSG_ERROR:
       feedback.color = RED;
       strcpy(feedback.line, "[ERROR] ");

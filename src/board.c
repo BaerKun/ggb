@@ -38,7 +38,7 @@ void board_init() {
   default_option.color.point = DARKBLUE;
   default_option.color.circle = GRAY;
   default_option.color.line = GRAY;
-  draw_queue_init(&draw_queue.point, 128);
+  draw_queue_init(&draw_queue.point, 64);
   draw_queue_init(&draw_queue.circle, 64);
   draw_queue_init(&draw_queue.line, 64);
   object_module_init();

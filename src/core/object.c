@@ -1,14 +1,15 @@
 #include "object.h"
 #include "str_hash.h"
+#include "message.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct  {
+typedef struct {
   int cap, size;
   uint64_t *bitmap;
   GeomObject *data;
-}GeomSparseArray;
+} GeomSparseArray;
 
 typedef struct {
   StringHashTable hash;
@@ -71,8 +72,8 @@ static void geom_dict_delete(GeomDict *dict, const char *key) {
 }
 
 void object_module_init() {
-  geom_dict_init(&objects, 256);
-  point_module_init(512);
+  geom_dict_init(&objects, 64);
+  point_module_init(128);
 }
 
 void object_module_cleanup() {
@@ -87,9 +88,8 @@ GeomObject *object_find(const ObjectType type, const char *name) {
   return obj;
 }
 
-GeomObject *object_create(const ObjectType type, const GeomId pt1,
-                          const GeomId pt2, const char *name,
-                          const int32_t color, const bool show) {
+void object_create(const ObjectType type, const GeomId pt1, const GeomId pt2,
+                   const char *name, const int32_t color, const bool show) {
   GeomObject *obj = geom_dict_insert(&objects, name);
   obj->type = type;
   obj->show = show;
@@ -98,7 +98,6 @@ GeomObject *object_create(const ObjectType type, const GeomId pt1,
   obj->pt2 = pt2;
   point_ref(pt1);
   point_ref(pt2);
-  return obj;
 }
 
 void object_delete(const GeomObject *obj) {
@@ -107,7 +106,7 @@ void object_delete(const GeomObject *obj) {
   geom_dict_delete(&objects, obj->name);
 }
 
-void object_traverse( void (*callback)(const GeomObject *)) {
+void object_traverse(void (*callback)(const GeomObject *)) {
   const GeomSparseArray *array = &objects.array;
   for (int i = 0; i < array->cap; i += 64) {
     uint64_t bitmap = array->bitmap[i >> 6];
@@ -124,10 +123,6 @@ void object_traverse( void (*callback)(const GeomObject *)) {
   }
 }
 
-bool may_be_coord(const char *str) {
-  return *str == '-' || *str == '+' || (*str >= '0' && *str <= '9');
-}
-
 ObjectType get_type_from_str(const char *str) {
   uint64_t hash = 0; // clang-format off
   for (int i = 0; *str && i < 8; ++i) hash = (hash << 8) | *str++;
@@ -141,6 +136,23 @@ ObjectType get_type_from_str(const char *str) {
   } // clang-format on
 }
 
+bool may_be_coord(const char *str) {
+  return *str == '-' || *str == '+' || (*str >= '0' && *str <= '9');
+}
+
 bool get_coord_from_str(const char *str, Vec2 *coord) {
   return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
+}
+
+int check_name(const char *name) {
+  if (name != NULL) {
+    if (strlen(name) > OBJECT_NAME_MAX_LEN) {
+      throw_error_fmt("name '%s' is too long. ( <= %d )", name,
+                      OBJECT_NAME_MAX_LEN);
+    }
+    if (object_find(ANY, name) != NULL) {
+      throw_error_fmt("name '%s' already exists.", name);
+    }
+  }
+  return 0;
 }

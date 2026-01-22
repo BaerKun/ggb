@@ -65,7 +65,7 @@ int commandline_parse(char *line) {
   const char *cmd = argv[0];
   const int cmd_id = string_hash_find(&cmd_hash, cmd);
   if (cmd_id == -1) {
-    throw_error_fmt(UNKNOWN_COMMAND, "unknown command '%s'", cmd);
+    throw_error_fmt("unknown command '%s'", cmd);
   }
   return cmd_map[cmd_id].func(argc, argv);
 }

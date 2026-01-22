@@ -3,36 +3,27 @@
 
 typedef enum {
   MSG_NULL = 0,
-
-  FILE_CANT_OPEN,
-  COMMANDLINE_TOO_LONG,
-  UNKNOWN_COMMAND,
-  MISS_PARAMETER,
-  UNKNOWN_PARAMETER,
-  INVALID_PARAMETER,
-  NAME_TOO_LONG,
-  NAME_EXISTS,
-  OBJECT_NOT_EXISTS,
-
+  MSG_INFO,
+  MSG_WARN,
+  MSG_ERROR,
   MSG_EXIT,
-
-  MSG_LEVEL_MASK = 1111 << 12,
-  MSG_INFO = 1 << 12,
-  MSG_WARN = 1 << 13,
-  MSG_ERROR = 1 << 14
-} MessageType;
+} MessageLevel;
 
 typedef struct {
-  MessageType type;
+  MessageLevel level;
   char content[256];
 } Message;
 
-#define throw_error(type, content)                                             \
-  return message_push(MSG_ERROR | type, content), MSG_ERROR | type
-#define throw_error_fmt(type, format, ...)                                     \
-  return message_push(MSG_ERROR | type, format, __VA_ARGS__), MSG_ERROR | type
+#define throw_error(content)                                             \
+  return message_push(MSG_ERROR, content), MSG_ERROR
+#define throw_error_fmt(format, ...)                                     \
+  return message_push(MSG_ERROR, format, __VA_ARGS__), MSG_ERROR
+#define push_error(content) message_push(MSG_ERROR, content)
+#define push_error_fmt(format, ...) message_push(MSG_ERROR, format, __VA_ARGS__)
 
-void message_push(MessageType type, const char *format, ...);
+#define propagate_error(code) if (code == MSG_ERROR) return MSG_ERROR
+
+void message_push(MessageLevel type, const char *format, ...);
 const Message *message_pop();
 void message_make_empty();
 

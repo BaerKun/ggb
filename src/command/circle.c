@@ -1,8 +1,8 @@
 #include "argparse.h"
 #include "message.h"
 #include "object.h"
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
 
 static inline float vec2_dist(const Vec2 v1, const Vec2 v2) {
   const float dx = v1.x - v2.x;
@@ -62,7 +62,7 @@ int cmd_circle(const int argc, const char **argv) {
         throw_error_fmt("line segment '%s' doesn't exist.", arg);
       }
       GeomId pts[] = {center, seg->pt1, seg->pt2};
-      pt = point_create(ZERO_POINT, (Constraint){2, pts, by_const_radius});
+      pt = point_create(ZERO_POINT, (Constraint){3, pts, by_segment_radius});
     }
   } else {
     const GeomObject *pt_obj = object_find(POINT, arg);

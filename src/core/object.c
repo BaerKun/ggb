@@ -6,7 +6,7 @@
 #include <string.h>
 
 typedef struct {
-  int cap, size;
+  GeomSize cap, size;
   uint64_t *bitmap;
   GeomObject *data;
 } GeomSparseArray;
@@ -18,7 +18,7 @@ typedef struct {
 
 static GeomDict objects;
 
-static inline void geom_dict_init(GeomDict *dict, const int init_size) {
+static inline void geom_dict_init(GeomDict *dict, const GeomSize init_size) {
   string_hash_init(&dict->hash, init_size);
   dict->array.cap = init_size;
   dict->array.size = 0;
@@ -51,7 +51,7 @@ static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
     dict->array.data = new_memory;
   }
 
-  const int idx = string_hash_alloc_id(&dict->hash);
+  const GeomId idx = string_hash_alloc_id(&dict->hash);
   GeomObject *obj = array->data + idx;
   if (key == NULL) {
     get_default_name(obj->name);
@@ -84,7 +84,7 @@ void object_module_cleanup() {
 GeomObject *object_find(const ObjectType type, const char *name) {
   const GeomInt id = string_hash_find(&objects.hash, name);
   GeomObject *obj = objects.array.data + id;
-  if (id == -1 || (type != ANY && type != obj->type)) return NULL;
+  if (id == -1 || !(type & obj->type)) return NULL;
   return obj;
 }
 
@@ -120,27 +120,6 @@ void object_traverse(void (*callback)(const GeomObject *)) {
       bitmap &= bitmap - 1;
     }
   }
-}
-
-ObjectType get_type_from_str(const char *str) {
-  uint64_t hash = 0; // clang-format off
-  for (int i = 0; *str && i < 8; ++i) hash = (hash << 8) | *str++;
-  switch (hash) {
-  case 0x706f696e74: return POINT;
-  case 0x636972636c65: return CIRCLE;
-  case 0x6c696e65: return LINE;
-  case 0x726179: return RAY;
-  case 0x736567: return SEG;
-  default: return UNKNOWN;
-  } // clang-format on
-}
-
-bool may_be_coord(const char *str) {
-  return *str == '-' || *str == '+' || (*str >= '0' && *str <= '9');
-}
-
-bool get_coord_from_str(const char *str, Vec2 *coord) {
-  return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
 }
 
 int check_name(const char *name) {

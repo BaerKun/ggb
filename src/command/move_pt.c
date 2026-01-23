@@ -1,5 +1,10 @@
-#include "object.h"
 #include "message.h"
+#include "object.h"
+#include <stdio.h>
+
+static inline int get_coord_from_str(const char *str, Vec2 *coord) {
+  return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
+}
 
 int cmd_move_pt(const int argc, const char **argv) {
   if (argc == 1) {

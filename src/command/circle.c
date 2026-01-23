@@ -17,14 +17,12 @@ int cmd_circle(const int argc, const char **argv) {
   static struct argparse parse;
   static struct argparse_option opt[] = {
       OPT_STRING('n', "name", &name), OPT_INTEGER('c', "color", &color),
-      OPT_BOOLEAN(0, "as-radius", &as_radius),
-      OPT_END()};
+      OPT_BOOLEAN(0, "as-radius", &as_radius), OPT_END()};
 
-  name = NULL;
-  color = -1;
-  as_radius = 0;
+  name = NULL, color = -1, as_radius = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
+  if (remaining < 0) return MSG_ERROR;
 
   propagate_error(check_name(name));
 
@@ -48,9 +46,9 @@ int cmd_circle(const int argc, const char **argv) {
       if (*end) {
         throw_error_fmt("constant radius need a number. got '%s'.", arg);
       }
-        const GeomId helper = point_create((Vec2){radius}, FREE);
-        GeomId pts[] = {obj->pt1, helper};
-        pt = point_create(ZERO_POINT, (Constraint){2, pts, by_const_radius});
+      const GeomId helper = point_create((Vec2){radius}, FREE);
+      GeomId pts[] = {obj->pt1, helper};
+      pt = point_create(ZERO_POINT, (Constraint){2, pts, by_const_radius});
     } else {
       const GeomObject *seg = object_find(SEG, arg);
       if (seg == NULL) {

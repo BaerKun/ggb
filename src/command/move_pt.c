@@ -15,7 +15,7 @@ int cmd_move_pt(const int argc, const char **argv) {
 
   Vec2 dst;
   if (!get_coord_from_str(argv[2], &dst)) {
-    throw_error_fmt("'%s' is an invalid coordinate.",
+    throw_error_fmt("'%s' is an invalid coordinate. must be '%%f,%%f'",
                     argv[2]);
   }
 

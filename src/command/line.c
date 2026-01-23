@@ -7,15 +7,13 @@ int cmd_line(const int argc, const char **argv) {
   static int color, seg, ray;
   static struct argparse parse;
   static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name),  OPT_INTEGER('c', "color", &color),
-      OPT_BOOLEAN(0, "seg", &seg),
-      OPT_BOOLEAN(0, "ray", &ray),     OPT_END()};
+      OPT_STRING('n', "name", &name), OPT_INTEGER('c', "color", &color),
+      OPT_BOOLEAN(0, "seg", &seg), OPT_BOOLEAN(0, "ray", &ray), OPT_END()};
 
-  name = NULL;
-  color = -1;
-  ray = seg = 0;
+  name = NULL, color = -1, ray = seg = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
+  if (remaining < 0) return MSG_ERROR;
 
   propagate_error(check_name(name));
 

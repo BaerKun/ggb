@@ -14,14 +14,14 @@ int cmd_midpoint(const int argc, const char **argv) {
   static char *name;
   static int color;
   static struct argparse parse;
-  static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name), OPT_INTEGER('c', "color", &color),
-       OPT_END()};
+  static struct argparse_option opt[] = {OPT_STRING('n', "name", &name),
+                                         OPT_INTEGER('c', "color", &color),
+                                         OPT_END()};
 
-  name = NULL;
-  color = -1;
+  name = NULL, color = -1;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
+  if (remaining < 0) return MSG_ERROR;
 
   int code = 0;
   if (check_name(name)) code = MSG_ERROR;
@@ -43,6 +43,6 @@ int cmd_midpoint(const int argc, const char **argv) {
   object_create(POINT, pt, -1, name, color);
   return 0;
 
-  point_not_exists:
+point_not_exists:
   throw_error_fmt("point '%s' doesn't exist.", obj_name);
 }

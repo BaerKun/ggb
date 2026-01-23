@@ -34,6 +34,6 @@ int cmd_line(const int argc, const char **argv) {
   ObjectType type = LINE;
   if (ray) type = RAY;
   if (seg) type = SEG;
-  object_create(type, pt1->pt1, pt2->pt1, name, color);
+  object_create(type, pt1->pt1, pt2->pt1, name, DEFAULT_COLOR);
   return 0;
 }

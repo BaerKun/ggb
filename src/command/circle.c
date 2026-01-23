@@ -72,6 +72,6 @@ int cmd_circle(const int argc, const char **argv) {
     pt = pt_obj->pt1;
   }
 
-  object_create(CIRCLE, center, pt, name, color);
+  object_create(CIRCLE, center, pt, name, DEFAULT_COLOR);
   return 0;
 }

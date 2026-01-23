@@ -5,51 +5,72 @@
 #include <math.h>
 #include <stdlib.h>
 
+typedef struct {
+  union {
+    Vec2 pt;
+    struct {
+      Vec2 pt1, pt2;
+    } ln;
+    struct {
+      Vec2 center;
+      float radius;
+    } cr;
+    struct {
+      Vec2 pos;
+      const char *content;
+    } tx;
+  } data;
+  Color color;
+} DrawBuffer;
+
+typedef struct {
+  GeomSize cap, size;
+  DrawBuffer *elems;
+} DrawQueue;
+
+struct {
+  DrawQueue point, line, circle;
+} draw_buffer;
+
 static struct {
   struct {
     Color point, circle, line;
   } color;
-} default_option;
+} default_config;
 
-typedef struct {
-  GeomSize cap, size;
-  const GeomObject **elems;
-} DrawQueue;
-
-struct {
-  DrawQueue point, circle, line;
-} draw_queue;
+static bool update_buffer;
 
 static void draw_queue_init(DrawQueue *q, const GeomSize init_size) {
   q->cap = init_size;
   q->size = 0;
-  q->elems = malloc(init_size * sizeof(GeomObject));
+  q->elems = malloc(init_size * sizeof(DrawBuffer));
 }
 
-static void draw_queue_push(DrawQueue *q, const GeomObject *obj) {
+static void draw_queue_push(DrawQueue *q, const DrawBuffer elem) {
   if (q->size == q->cap) {
     q->cap *= 2;
     void *mem = realloc(q->elems, q->cap * sizeof(GeomObject));
     q->elems = mem;
   }
-  q->elems[q->size++] = obj;
+  q->elems[q->size++] = elem;
 }
 
 void board_init() {
-  default_option.color.point = DARKBLUE;
-  default_option.color.circle = GRAY;
-  default_option.color.line = GRAY;
-  draw_queue_init(&draw_queue.point, 64);
-  draw_queue_init(&draw_queue.circle, 64);
-  draw_queue_init(&draw_queue.line, 64);
+  default_config.color.point = DARKBLUE;
+  default_config.color.circle = GRAY;
+  default_config.color.line = GRAY;
+  draw_queue_init(&draw_buffer.point, 64);
+  draw_queue_init(&draw_buffer.circle, 16);
+  draw_queue_init(&draw_buffer.line, 32);
   object_module_init();
 }
 
 void board_cleanup() { object_module_cleanup(); }
 
-static inline Color to_raylib_color(const int color) {
-  // little-endian
-  return (Color){(unsigned)color >> 16, (unsigned)color >> 8, color, 255};
+void board_update_buffer() { update_buffer = true; }
+
+static inline bool is_default_color(const Color color) {
+  return color.r == 0 && color.g == 0 && color.b == 0;
 }
 
 static inline Vec2 get_end_point(const Vec2 p, const Vec2 q) {
@@ -66,54 +87,72 @@ static inline float vec2_dist(const Vec2 p, const Vec2 q) {
   return sqrtf(dx * dx + dy * dy);
 }
 
-static void get_draw_queue(const GeomObject *obj) {
+static void get_draw_buffer(const GeomObject *obj) {
+  DrawBuffer buff;
   switch (obj->type) {
   case POINT:
-    draw_queue_push(&draw_queue.point, obj);
+    buff.data.pt = point_get_coord(obj->pt1);
+    buff.color =
+        is_default_color(obj->color) ? default_config.color.point : obj->color;
+    draw_queue_push(&draw_buffer.point, buff);
     break;
   case CIRCLE:
-    draw_queue_push(&draw_queue.circle, obj);
+    buff.data.cr.center = point_get_coord(obj->pt1);
+    buff.data.cr.radius =
+        vec2_dist(buff.data.cr.center, point_get_coord(obj->pt2));
+    buff.color =
+        is_default_color(obj->color) ? default_config.color.circle : obj->color;
+    draw_queue_push(&draw_buffer.circle, buff);
     break;
+  case SEG:
+    buff.data.ln.pt1 = point_get_coord(obj->pt1);
+    buff.data.ln.pt2 = point_get_coord(obj->pt2);
+    buff.color =
+        is_default_color(obj->color) ? default_config.color.line : obj->color;
+    draw_queue_push(&draw_buffer.line, buff);
+    break;
+  case RAY:
+    buff.data.ln.pt1 = point_get_coord(obj->pt1);
+    buff.data.ln.pt2 =
+        get_end_point(buff.data.ln.pt1, point_get_coord(obj->pt2));
+    buff.color =
+        is_default_color(obj->color) ? default_config.color.line : obj->color;
+    draw_queue_push(&draw_buffer.line, buff);
+    break;
+  case LINE: {
+    const Vec2 p1 = point_get_coord(obj->pt1);
+    const Vec2 p2 = point_get_coord(obj->pt2);
+    buff.data.ln.pt1 = get_end_point(p1, p2);
+    buff.data.ln.pt2 = get_end_point(p2, p1);
+    buff.color =
+        is_default_color(obj->color) ? default_config.color.line : obj->color;
+    draw_queue_push(&draw_buffer.line, buff);
+  }
   default:
-    draw_queue_push(&draw_queue.line, obj);
+    break;
   }
 }
 
 void board_draw_update() {
-#define GET_RAYLIB_COLOR(type_, color_)                                        \
-  ((color_) == -1 ? default_option.color.type_ : to_raylib_color(color_))
+  if (update_buffer) {
+    draw_buffer.point.size = draw_buffer.circle.size = draw_buffer.line.size = 0;
+    object_traverse(get_draw_buffer);
+    update_buffer = false;
+  }
 
-  draw_queue.point.size = draw_queue.circle.size = draw_queue.line.size = 0;
-  object_traverse(get_draw_queue);
+  for (GeomId i = 0; i < draw_buffer.point.size; i++) {
+    const DrawBuffer buff = draw_buffer.point.elems[i];
+    rl_draw_circle_v(buff.data.pt, 2, buff.color);
+  }
 
-  for (GeomId i = 0; i < draw_queue.point.size; i++) {
-    const GeomObject *obj = draw_queue.point.elems[i];
-    rl_draw_circle_v(point_get_coord(obj->pt1), 2,
-                     GET_RAYLIB_COLOR(point, obj->color));
+  for (GeomId i = 0; i < draw_buffer.circle.size; i++) {
+    const DrawBuffer buff = draw_buffer.circle.elems[i];
+    rl_draw_circle_lines_v(buff.data.cr.center, buff.data.cr.radius,
+                           buff.color);
   }
-  for (GeomId i = 0; i < draw_queue.circle.size; i++) {
-    const GeomObject *obj = draw_queue.circle.elems[i];
-    const Vec2 pt1 = point_get_coord(obj->pt1);
-    const Vec2 pt2 = point_get_coord(obj->pt2);
-    rl_draw_circle_lines_v(pt1, vec2_dist(pt1, pt2),
-                           GET_RAYLIB_COLOR(circle, obj->color));
+
+  for (GeomId i = 0; i < draw_buffer.line.size; i++) {
+    const DrawBuffer buff = draw_buffer.line.elems[i];
+    rl_draw_line_v(buff.data.ln.pt1, buff.data.ln.pt2, buff.color);
   }
-  for (GeomId i = 0; i < draw_queue.line.size; i++) {
-    const GeomObject *obj = draw_queue.line.elems[i];
-    const Vec2 pt1 = point_get_coord(obj->pt1);
-    const Vec2 pt2 = point_get_coord(obj->pt2);
-    switch (obj->type) {
-    case SEG:
-      rl_draw_line_v(pt1, pt2, GET_RAYLIB_COLOR(line, obj->color));
-      break;
-    case RAY:
-      rl_draw_line_v(pt1, get_end_point(pt1, pt2),
-                     GET_RAYLIB_COLOR(line, obj->color));
-      break;
-    default:
-      rl_draw_line_v(get_end_point(pt1, pt2), get_end_point(pt2, pt1),
-                     GET_RAYLIB_COLOR(line, obj->color));
-    }
-  }
-#undef GET_DEFAULT_COLOR
 }

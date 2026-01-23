@@ -34,6 +34,6 @@ int cmd_point(const int argc, const char **argv) {
   }
 
   const GeomId pt = point_create((Vec2){x, y}, (Constraint){});
-  object_create(POINT, pt, -1, name, color);
+  object_create(POINT, pt, -1, name, DEFAULT_COLOR);
   return 0;
 }

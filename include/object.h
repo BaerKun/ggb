@@ -18,9 +18,11 @@ typedef enum {
 typedef struct {
   char name[OBJECT_NAME_MAX_LEN + 1];
   ObjectType type;
-  int32_t color;
+  Color color;
   GeomId pt1, pt2;
 } GeomObject;
+
+#define DEFAULT_COLOR (Color){}
 
 int check_name(const char *name);
 
@@ -31,7 +33,7 @@ void object_draw_all();
 void object_delete(const GeomObject *obj);
 GeomObject *object_find(ObjectType type, const char *name);
 void object_create(ObjectType type, GeomId pt1, GeomId pt2, const char *name,
-                   int32_t color);
+                   Color color);
 
 void object_traverse(void (*callback)(const GeomObject *));
 

@@ -72,8 +72,8 @@ static void geom_dict_delete(GeomDict *dict, const char *key) {
 }
 
 void object_module_init() {
-  geom_dict_init(&objects, 64);
-  point_module_init(128);
+  geom_dict_init(&objects, 128);
+  point_module_init(256);
 }
 
 void object_module_cleanup() {
@@ -89,7 +89,7 @@ GeomObject *object_find(const ObjectType type, const char *name) {
 }
 
 void object_create(const ObjectType type, const GeomId pt1, const GeomId pt2,
-                   const char *name, const int32_t color) {
+                   const char *name, const Color color) {
   GeomObject *obj = geom_dict_insert(&objects, name);
   obj->type = type;
   obj->color = color;

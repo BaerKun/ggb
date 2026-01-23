@@ -3,6 +3,7 @@
 
 void board_init();
 void board_draw_update();
+void board_update_buffer();
 void board_cleanup();
 
 #endif //GGB_BOARD_H

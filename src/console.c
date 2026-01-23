@@ -1,7 +1,8 @@
-#include "raylib_.h"
 #include "console.h"
+#include "board.h"
 #include "commandline.h"
 #include "message.h"
+#include "raylib_.h"
 #include <string.h>
 
 static int cursor_pos = 0;
@@ -29,6 +30,7 @@ void console_listen() {
     memset(commandline, 0, cursor_pos);
     cursor_pos = 0;
     feedback.enable = false;
+    board_update_buffer();
   }
 }
 

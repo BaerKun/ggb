@@ -1,7 +1,8 @@
-#include "raylib.h"
-#include "types.h"
 #include "board.h"
 #include "object.h"
+#include "raylib_.h"
+#include "types.h"
+#include <math.h>
 #include <stdlib.h>
 
 static struct {
@@ -52,11 +53,17 @@ static inline Color to_raylib_color(const int color) {
 }
 
 static inline Vec2 get_end_point(const Vec2 p, const Vec2 q) {
-  const Vec2 v = Vector2Subtract(q, p);
-  const float norm = Vector2Length(v);
+  const Vec2 v = {q.x - p.x, q.y - p.y};
+  const float norm = sqrtf(v.x * v.x + v.y * v.y);
   if (norm == 0) return p;
   const float scale = 4096.f / norm;
   return (Vec2){p.x + v.x * scale, p.y + v.y * scale};
+}
+
+static inline float vec2_dist(const Vec2 p, const Vec2 q) {
+  const float dx = p.x - q.x;
+  const float dy = p.y - q.y;
+  return sqrtf(dx * dx + dy * dy);
 }
 
 static void get_draw_queue(const GeomObject *obj) {
@@ -81,15 +88,15 @@ void board_draw_update() {
 
   for (GeomId i = 0; i < draw_queue.point.size; i++) {
     const GeomObject *obj = draw_queue.point.elems[i];
-    DrawCircleV(point_get_coord(obj->pt1), 2,
-                GET_RAYLIB_COLOR(point, obj->color));
+    rl_draw_circle_v(point_get_coord(obj->pt1), 2,
+                     GET_RAYLIB_COLOR(point, obj->color));
   }
   for (GeomId i = 0; i < draw_queue.circle.size; i++) {
     const GeomObject *obj = draw_queue.circle.elems[i];
     const Vec2 pt1 = point_get_coord(obj->pt1);
     const Vec2 pt2 = point_get_coord(obj->pt2);
-    DrawCircleLinesV(pt1, vec2_distance(pt1, pt2),
-                     GET_RAYLIB_COLOR(circle, obj->color));
+    rl_draw_circle_lines_v(pt1, vec2_dist(pt1, pt2),
+                           GET_RAYLIB_COLOR(circle, obj->color));
   }
   for (GeomId i = 0; i < draw_queue.line.size; i++) {
     const GeomObject *obj = draw_queue.line.elems[i];
@@ -97,15 +104,15 @@ void board_draw_update() {
     const Vec2 pt2 = point_get_coord(obj->pt2);
     switch (obj->type) {
     case SEG:
-      DrawLineV(pt1, pt2, GET_RAYLIB_COLOR(line, obj->color));
+      rl_draw_line_v(pt1, pt2, GET_RAYLIB_COLOR(line, obj->color));
       break;
     case RAY:
-      DrawLineV(pt1, get_end_point(pt1, pt2),
-                GET_RAYLIB_COLOR(line, obj->color));
+      rl_draw_line_v(pt1, get_end_point(pt1, pt2),
+                     GET_RAYLIB_COLOR(line, obj->color));
       break;
     default:
-      DrawLineV(get_end_point(pt1, pt2), get_end_point(pt2, pt1),
-                GET_RAYLIB_COLOR(line, obj->color));
+      rl_draw_line_v(get_end_point(pt1, pt2), get_end_point(pt2, pt1),
+                     GET_RAYLIB_COLOR(line, obj->color));
     }
   }
 #undef GET_DEFAULT_COLOR

@@ -2,13 +2,20 @@
 #include "message.h"
 #include "object.h"
 #include <stdlib.h>
+#include <math.h>
+
+static inline float vec2_dist(const Vec2 v1, const Vec2 v2) {
+  const float dx = v1.x - v2.x;
+  const float dy = v1.y - v2.y;
+  return sqrtf(dx * dx + dy * dy);
+}
 
 static Vec2 by_const_radius(GeomInt argc, const Vec2 *argv) {
   return (Vec2){argv[0].x + argv[1].x, argv[0].y};
 }
 
 static Vec2 by_segment_radius(GeomInt argc, const Vec2 *argv) {
-  return (Vec2){argv[0].x + vec2_distance(argv[1], argv[2]), argv[0].y};
+  return (Vec2){argv[0].x + vec2_dist(argv[1], argv[2]), argv[0].y};
 }
 
 int cmd_circle(const int argc, const char **argv) {

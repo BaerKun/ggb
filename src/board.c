@@ -60,7 +60,6 @@ static inline Vec2 get_end_point(const Vec2 p, const Vec2 q) {
 }
 
 static void get_draw_queue(const GeomObject *obj) {
-  if (!obj->show) return;
   switch (obj->type) {
   case POINT:
     draw_queue_push(&draw_queue.point, obj);

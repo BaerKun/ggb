@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int load_src(const int argc, const char **argv) {
+int cmd_load_src(const int argc, const char **argv) {
   static char buffer[CLI_BUF_SIZE];
 
   if (argc == 1) throw_error("no file was given.");

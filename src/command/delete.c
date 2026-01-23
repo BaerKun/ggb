@@ -2,7 +2,7 @@
 #include "message.h"
 #include "argparse.h"
 
-int delete_(const int argc, const char **argv) {
+int cmd_delete(const int argc, const char **argv) {
   static int all;
   static struct argparse parse;
   static struct argparse_option options[] ={

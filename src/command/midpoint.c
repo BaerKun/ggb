@@ -10,17 +10,16 @@ static Vec2 callback(GeomId argc, const Vec2 *argv) {
   return res;
 }
 
-int midpoint(const int argc, const char **argv) {
+int cmd_midpoint(const int argc, const char **argv) {
   static char *name;
-  static int color, hide;
+  static int color;
   static struct argparse parse;
   static struct argparse_option opt[] = {
       OPT_STRING('n', "name", &name), OPT_INTEGER('c', "color", &color),
-      OPT_BOOLEAN('h', "hide", &hide), OPT_END()};
+       OPT_END()};
 
   name = NULL;
   color = -1;
-  hide = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
 
@@ -41,7 +40,7 @@ int midpoint(const int argc, const char **argv) {
 
   GeomId cons_argv[2] = {obj1->pt1, obj2->pt1};
   GeomId pt = point_create((Vec2){}, (Constraint){2, cons_argv, callback});
-  object_create(POINT, pt, -1, name, color, !hide);
+  object_create(POINT, pt, -1, name, color);
   return 0;
 
   point_not_exists:

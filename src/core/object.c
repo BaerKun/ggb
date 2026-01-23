@@ -89,10 +89,9 @@ GeomObject *object_find(const ObjectType type, const char *name) {
 }
 
 void object_create(const ObjectType type, const GeomId pt1, const GeomId pt2,
-                   const char *name, const int32_t color, const bool show) {
+                   const char *name, const int32_t color) {
   GeomObject *obj = geom_dict_insert(&objects, name);
   obj->type = type;
-  obj->show = show;
   obj->color = color;
   obj->pt1 = pt1;
   obj->pt2 = pt2;

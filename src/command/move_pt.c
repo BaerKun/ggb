@@ -1,7 +1,7 @@
 #include "object.h"
 #include "message.h"
 
-int move_pt(const int argc, const char **argv) {
+int cmd_move_pt(const int argc, const char **argv) {
   if (argc == 1) {
     throw_error("point and destination not provided.");
   }

@@ -18,6 +18,9 @@ typedef struct {
   Vec2 (*eval)(GeomInt, const Vec2 *);
 } Constraint;
 
+#define ZERO_POINT (Vec2){}
+#define FREE (Constraint){}
+
 void point_module_init(GeomSize init_size);
 void point_module_cleanup();
 GeomId point_create(Vec2 coord, Constraint cons);

@@ -13,7 +13,6 @@ typedef struct {
   char name[OBJECT_NAME_MAX_LEN + 1];
   ObjectType type;
   int32_t color;
-  bool show;
   GeomId pt1, pt2;
 } GeomObject;
 
@@ -29,7 +28,7 @@ void object_draw_all();
 void object_delete(const GeomObject *obj);
 GeomObject *object_find(ObjectType type, const char *name);
 void object_create(ObjectType type, GeomId pt1, GeomId pt2, const char *name,
-                   int32_t color, bool show);
+                   int32_t color);
 
 void object_traverse(void (*callback)(const GeomObject *));
 

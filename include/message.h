@@ -20,7 +20,6 @@ typedef struct {
   return message_push(MSG_ERROR, format, __VA_ARGS__), MSG_ERROR
 #define push_error(content) message_push(MSG_ERROR, content)
 #define push_error_fmt(format, ...) message_push(MSG_ERROR, format, __VA_ARGS__)
-
 #define propagate_error(code) if (code == MSG_ERROR) return MSG_ERROR
 
 void message_push(MessageLevel type, const char *format, ...);

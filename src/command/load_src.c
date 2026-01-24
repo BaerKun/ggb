@@ -30,7 +30,8 @@ int cmd_load_src(const int argc, const char **argv) {
       if (code == MSG_ERROR) {
         fclose(file);
         strcpy(buffer, msg->content);
-        throw_error_fmt("line %d: %s", line, buffer);
+        message_push_front(MSG_ERROR, "line %d: %s", line, buffer);
+        return MSG_ERROR;
       }
     }
   }

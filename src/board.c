@@ -17,7 +17,7 @@ typedef struct {
     } cr;
     struct {
       Vec2 pos;
-      const char *content;
+      char content[8];
     } tx;
   } data;
   Color color;
@@ -70,7 +70,7 @@ void board_cleanup() { object_module_cleanup(); }
 void board_update_buffer() { update_buffer = true; }
 
 static inline bool is_default_color(const Color color) {
-  return color.r == 0 && color.g == 0 && color.b == 0;
+  return color.a == 0;
 }
 
 static inline Vec2 get_end_point(const Vec2 p, const Vec2 q) {

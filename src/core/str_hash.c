@@ -4,13 +4,13 @@
 
 struct StringHashEntry_ {
   GeomId next;
-  uint64_t hash;
-  const char *str;
+  uint32_t hash;
+  char str[12];
 };
 
-static inline uint64_t str_hash(const char *str) {
-  uint64_t hash = 5381, c;
-  while ((c = (uint64_t)*str++)) hash = ((hash << 5) + hash) ^ c;
+static inline uint32_t str_hash(const char *str) {
+  uint32_t hash = 5381, c;
+  while ((c = (uint32_t)*str++)) hash = hash * 33 + c;
   return hash;
 }
 
@@ -39,8 +39,8 @@ GeomId string_hash_alloc_id(StringHashTable *table) {
 void string_hash_insert(const StringHashTable *table, const char *str,
                         const GeomId id) {
   StringHashEntry *entry = table->entries + id;
-  entry->hash = str_hash(str);
-  entry->str = str;
+  strcpy(entry->str, str);
+  entry->hash = str_hash(entry->str);
 
   GeomId *head = table->heads + entry->hash % table->cap;
   entry->next = *head;
@@ -48,7 +48,7 @@ void string_hash_insert(const StringHashTable *table, const char *str,
 }
 
 GeomId string_hash_remove(StringHashTable *table, const char *str) {
-  const uint64_t hash = str_hash(str);
+  const uint32_t hash = str_hash(str);
   GeomId *ptr = table->heads + hash % table->cap;
   for (GeomId i; (i = *ptr) != -1;) {
     StringHashEntry *entry = table->entries + i;
@@ -64,7 +64,7 @@ GeomId string_hash_remove(StringHashTable *table, const char *str) {
 }
 
 GeomId string_hash_find(const StringHashTable *table, const char *str) {
-  const uint64_t hash = str_hash(str);
+  const uint32_t hash = str_hash(str);
   for (GeomId i = table->heads[hash % table->cap]; i != -1;) {
     const StringHashEntry *entry = table->entries + i;
     if (entry->hash == hash && strcmp(entry->str, str) == 0) return i;

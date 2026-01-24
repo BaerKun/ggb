@@ -1,6 +1,6 @@
 #include "object.h"
-#include "str_hash.h"
 #include "message.h"
+#include "str_hash.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,16 +51,11 @@ static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
     dict->array.data = new_memory;
   }
 
-  const GeomId idx = string_hash_alloc_id(&dict->hash);
-  GeomObject *obj = array->data + idx;
-  if (key == NULL) {
-    get_default_name(obj->name);
-  } else {
-    memcpy(obj->name, key, sizeof(obj->name));
-  }
-  string_hash_insert(&dict->hash, obj->name, idx);
-
-  array->bitmap[idx >> 6] |= 1llu << (idx & 63);
+  const GeomId id = string_hash_alloc_id(&dict->hash);
+  string_hash_insert(&dict->hash, key, id);
+  GeomObject *obj = array->data + id;
+  key == NULL ? get_default_name(obj->name) : strcpy(obj->name, key);
+  array->bitmap[id >> 6] |= 1llu << (id & 63);
   array->size++;
   return obj;
 }
@@ -107,7 +102,7 @@ void object_delete(const GeomObject *obj) {
 
 void object_traverse(void (*callback)(const GeomObject *)) {
   const GeomSparseArray *array = &objects.array;
-  for (int i = 0; i < array->cap; i += 64) {
+  for (GeomSize i = 0; i < array->cap; i += 64) {
     uint64_t bitmap = array->bitmap[i >> 6];
     while (bitmap) {
 #if defined(__GNUC__) || defined(__clang__)
@@ -124,9 +119,8 @@ void object_traverse(void (*callback)(const GeomObject *)) {
 
 int check_name(const char *name) {
   if (name != NULL) {
-    if (strlen(name) > OBJECT_NAME_MAX_LEN) {
-      throw_error_fmt("name '%s' is too long. ( <= %d )", name,
-                      OBJECT_NAME_MAX_LEN);
+    if (strlen(name) > 7) {
+      throw_error_fmt("name '%s' is too long. ( <= %d )", name, 7);
     }
     if (object_find(ANY, name) != NULL) {
       throw_error_fmt("name '%s' already exists.", name);

@@ -26,7 +26,7 @@ static StringHashTable cmd_hash;
 void commandline_init() {
   string_hash_init(&cmd_hash, CMD_NUM);
   for (int i = 0; i < CMD_NUM; i++) {
-    const int id = string_hash_alloc_id(&cmd_hash);
+    const GeomId id = string_hash_alloc_id(&cmd_hash);
     string_hash_insert(&cmd_hash, cmd_map[id].name, id);
   }
 }
@@ -63,7 +63,7 @@ int commandline_parse(char *line) {
   if (argc == 0) return 0;
 
   const char *cmd = argv[0];
-  const int cmd_id = string_hash_find(&cmd_hash, cmd);
+  const GeomId cmd_id = string_hash_find(&cmd_hash, cmd);
   if (cmd_id == -1) {
     throw_error_fmt("unknown command '%s'", cmd);
   }

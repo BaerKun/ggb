@@ -4,8 +4,6 @@
 #include "point.h"
 #include <stdint.h>
 
-#define OBJECT_NAME_MAX_LEN 15
-
 typedef enum {
   POINT = 1,
   CIRCLE = 2,
@@ -16,7 +14,7 @@ typedef enum {
 } ObjectType;
 
 typedef struct {
-  char name[OBJECT_NAME_MAX_LEN + 1];
+  char name[8];
   ObjectType type;
   Color color;
   GeomId pt1, pt2;

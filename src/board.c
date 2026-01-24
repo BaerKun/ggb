@@ -49,7 +49,8 @@ static void draw_queue_init(DrawQueue *q, const GeomSize init_size) {
 static void draw_queue_push(DrawQueue *q, const DrawBuffer elem) {
   if (q->size == q->cap) {
     q->cap *= 2;
-    void *mem = realloc(q->elems, q->cap * sizeof(GeomObject));
+    void *mem = realloc(q->elems, q->cap * sizeof(DrawBuffer));
+    if (!mem) abort();
     q->elems = mem;
   }
   q->elems[q->size++] = elem;
@@ -140,11 +141,6 @@ void board_draw_update() {
     update_buffer = false;
   }
 
-  for (GeomId i = 0; i < draw_buffer.point.size; i++) {
-    const DrawBuffer buff = draw_buffer.point.elems[i];
-    rl_draw_circle_v(buff.data.pt, 2, buff.color);
-  }
-
   for (GeomId i = 0; i < draw_buffer.circle.size; i++) {
     const DrawBuffer buff = draw_buffer.circle.elems[i];
     rl_draw_circle_lines_v(buff.data.cr.center, buff.data.cr.radius,
@@ -154,5 +150,10 @@ void board_draw_update() {
   for (GeomId i = 0; i < draw_buffer.line.size; i++) {
     const DrawBuffer buff = draw_buffer.line.elems[i];
     rl_draw_line_v(buff.data.ln.pt1, buff.data.ln.pt2, buff.color);
+  }
+
+  for (GeomId i = 0; i < draw_buffer.point.size; i++) {
+    const DrawBuffer buff = draw_buffer.point.elems[i];
+    rl_draw_circle_v(buff.data.pt, 2, buff.color);
   }
 }

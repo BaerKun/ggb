@@ -21,19 +21,13 @@ int cmd_line(const int argc, const char **argv) {
     throw_error("'line' need 2 points. [--ray] [--seg]");
   }
 
-  const GeomObject *pt1 = object_find(POINT, argv[0]);
-  if (pt1 == NULL) {
-    throw_error_fmt("point '%s' doesn't exist.", argv[0]);
-  }
-
-  const GeomObject *pt2 = object_find(POINT, argv[1]);
-  if (pt2 == NULL) {
-    throw_error_fmt("point '%s' doesn't exist.", argv[1]);
-  }
+  GeomId pt1, pt2;
+  propagate_error(object_get_points(POINT, argv[0], &pt1, NULL));
+  propagate_error(object_get_points(POINT, argv[1], &pt2, NULL));
 
   ObjectType type = LINE;
   if (ray) type = RAY;
   if (seg) type = SEG;
-  object_create(type, pt1->pt1, pt2->pt1, name, DEFAULT_COLOR);
+  object_create(type, pt1, pt2, name, DEFAULT_COLOR);
   return 0;
 }

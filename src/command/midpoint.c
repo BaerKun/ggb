@@ -23,26 +23,17 @@ int cmd_midpoint(const int argc, const char **argv) {
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
-  int code = 0;
-  if (check_name(name)) code = MSG_ERROR;
+  propagate_error(check_name(name));
 
   if (remaining < 2) throw_error("midpoint need 2 points.");
 
-  const char *obj_name = argv[0];
-  const GeomObject *obj1 = object_find(POINT, obj_name);
-  if (obj1 == NULL) goto point_not_exists;
+  GeomId pt1, pt2;
+  propagate_error(object_get_points(POINT, argv[0], &pt1, NULL));
+  propagate_error(object_get_points(POINT, argv[1], &pt2, NULL));
 
-  obj_name = argv[1];
-  const GeomObject *obj2 = object_find(POINT, obj_name);
-  if (obj2 == NULL) goto point_not_exists;
-
-  if (code) return code;
-
-  GeomId cons_argv[2] = {obj1->pt1, obj2->pt1};
-  GeomId pt = point_create((Vec2){}, (Constraint){2, cons_argv, callback});
+  GeomId cons_argv[2] = {pt1, pt2};
+  const GeomId pt =
+      point_create((Vec2){}, (Constraint){2, cons_argv, callback});
   object_create(POINT, pt, -1, name, DEFAULT_COLOR);
   return 0;
-
-point_not_exists:
-  throw_error_fmt("point '%s' doesn't exist.", obj_name);
 }

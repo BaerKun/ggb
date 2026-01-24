@@ -63,6 +63,12 @@ GeomId string_hash_remove(StringHashTable *table, const char *str) {
   return -1;
 }
 
+void string_hash_clear(StringHashTable *table) {
+  table->free_head = 0;
+  memset(table->heads, -1, table->cap * sizeof(GeomId));
+  for (GeomId i = 0; i < table->cap; i++) table->entries[i].next = i + 1;
+}
+
 GeomId string_hash_find(const StringHashTable *table, const char *str) {
   const uint32_t hash = str_hash(str);
   for (GeomId i = table->heads[hash % table->cap]; i != -1;) {
@@ -77,16 +83,17 @@ void string_hash_resize(StringHashTable *table, const GeomSize new_size) {
   const GeomSize old_size = table->cap;
   table->cap = new_size;
 
-  void *new_memory =
-      realloc(table->entries, new_size * sizeof(StringHashEntry));
-  table->entries = new_memory;
+  void *mem = realloc(table->entries, new_size * sizeof(StringHashEntry));
+  if (!mem) abort();
+  table->entries = mem;
   for (GeomId i = (GeomId)old_size; i < new_size; i++) {
     table->entries[i].next = i + 1;
   }
 
-  new_memory = realloc(table->heads, new_size * sizeof(int));
-  table->heads = new_memory;
-  memset(table->heads, -1, new_size * sizeof(int));
+  mem = realloc(table->heads, new_size * sizeof(GeomId));
+  if (!mem) abort();
+  table->heads = mem;
+  memset(table->heads, -1, new_size * sizeof(GeomId));
   for (GeomId i = 0; i < old_size; i++) {
     StringHashEntry *entry = table->entries + i;
     GeomId *new_head = table->heads + entry->hash % new_size;

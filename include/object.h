@@ -20,7 +20,8 @@ typedef struct {
   GeomId pt1, pt2;
 } GeomObject;
 
-#define DEFAULT_COLOR (Color){}
+#define DEFAULT_COLOR                                                          \
+  (Color) {}
 
 int check_name(const char *name);
 
@@ -28,8 +29,10 @@ void object_module_init();
 void object_module_cleanup();
 void object_draw_all();
 
-void object_delete(const GeomObject *obj);
-GeomObject *object_find(ObjectType type, const char *name);
+int object_delete(const char *name);
+void object_delete_all();
+int object_get_points(ObjectType types, const char *name, GeomId *pt1,
+                      GeomId *pt2);
 void object_create(ObjectType type, GeomId pt1, GeomId pt2, const char *name,
                    Color color);
 

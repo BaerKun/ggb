@@ -16,14 +16,16 @@ static struct {
 
 static void vertex_resize_callback(const CGraphSize new_cap) {
   void *mem = realloc(global.points, new_cap * sizeof(PointObject));
+  if (!mem) abort();
   global.points = mem;
   mem = realloc(global.queue.elems, new_cap * sizeof(GeomId));
+  if (!mem) abort();
   global.queue.elems = mem;
 }
 
 void point_module_init(const GeomSize init_size) {
   global.points = malloc(init_size * sizeof(PointObject));
-  global.queue.elems = malloc(sizeof(GeomId) * init_size);
+  global.queue.elems = malloc(init_size * sizeof(GeomId));
   cgraphInit(&global.graph, true, init_size, init_size * 2);
   cgraphSetVertResizeCallback(&global.graph, vertex_resize_callback);
 }
@@ -62,6 +64,10 @@ GeomId point_create(const Vec2 coord, const Constraint cons) {
 
   point_coord_calc(pt);
   return id;
+}
+
+void point_clear() {
+  cgraphClear(&global.graph);
 }
 
 static void queue_clean(Queue *q) { q->front = q->rear = 0; }

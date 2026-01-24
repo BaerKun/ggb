@@ -14,20 +14,13 @@ int cmd_delete(const int argc, const char **argv) {
   const int remaining = argparse_parse(&parse, argc, argv);
 
   if (all) {
-    object_traverse(object_delete);
+    object_delete_all();
     return 0;
   }
 
-  int code = 0;
   for (int i = 0; i < remaining; i++) {
-    const GeomObject *obj = object_find(ANY, argv[i]);
-    if (obj == NULL) {
-      push_error_fmt("object '%s' does not exist.", argv[i]);
-      code = MSG_ERROR;
-      continue;
-    }
-    object_delete(obj);
+    propagate_error(object_delete(argv[i]));
   }
 
-  return code;
+  return 0;
 }

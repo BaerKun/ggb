@@ -16,6 +16,7 @@ void string_hash_init(StringHashTable *table, GeomSize init_size);
 GeomId string_hash_alloc_id(StringHashTable *table);
 void string_hash_insert(const StringHashTable *table, const char *str, GeomId id);
 GeomId string_hash_remove(StringHashTable *table, const char *str);
+void string_hash_clear(StringHashTable *table);
 GeomId string_hash_find(const StringHashTable *table, const char *str);
 void string_hash_free(const StringHashTable *table);
 // new_size > old_size

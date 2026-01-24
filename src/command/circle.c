@@ -18,6 +18,26 @@ static Vec2 by_segment_radius(GeomInt argc, const Vec2 *argv) {
   return (Vec2){argv[0].x + vec2_dist(argv[1], argv[2]), argv[0].y};
 }
 
+static int by_radius(const char *arg, const GeomId center, GeomId *pt) {
+  if (*arg >= '0' && *arg <= '9') {
+    char *end;
+    const float radius = strtof(arg, &end);
+    if (*end) {
+      throw_error_fmt("constant radius need a number. got '%s'.", arg);
+    }
+
+    const GeomId helper = point_create((Vec2){radius}, FREE);
+    GeomId pts[] = {center, helper};
+    *pt = point_create(ZERO_POINT, (Constraint){2, pts, by_const_radius});
+  } else {
+    GeomId seg_p1, seg_p2;
+    propagate_error(object_get_points(SEG, arg, &seg_p1, &seg_p2));
+    GeomId pts[] = {center, seg_p1, seg_p2};
+    *pt = point_create(ZERO_POINT, (Constraint){3, pts, by_segment_radius});
+  }
+  return 0;
+}
+
 int cmd_circle(const int argc, const char **argv) {
   static char *name;
   static int color, as_radius;
@@ -38,38 +58,13 @@ int cmd_circle(const int argc, const char **argv) {
                 "           (or radius when use '--as-radius').");
   }
 
-  const GeomObject *obj = object_find(POINT, argv[0]);
-  if (obj == NULL) {
-    throw_error_fmt("point '%s' doesn't exist.", argv[0]);
-  }
-  const GeomId center = obj->pt1;
+  GeomId center, pt;
+  propagate_error(object_get_points(POINT, argv[0], &center, NULL));
 
-  GeomId pt;
-  const char *arg = argv[1];
   if (as_radius) {
-    if (*arg >= '0' && *arg <= '9') {
-      char *end;
-      const float radius = strtof(arg, &end);
-      if (*end) {
-        throw_error_fmt("constant radius need a number. got '%s'.", arg);
-      }
-      const GeomId helper = point_create((Vec2){radius}, FREE);
-      GeomId pts[] = {obj->pt1, helper};
-      pt = point_create(ZERO_POINT, (Constraint){2, pts, by_const_radius});
-    } else {
-      const GeomObject *seg = object_find(SEG, arg);
-      if (seg == NULL) {
-        throw_error_fmt("line segment '%s' doesn't exist.", arg);
-      }
-      GeomId pts[] = {center, seg->pt1, seg->pt2};
-      pt = point_create(ZERO_POINT, (Constraint){3, pts, by_segment_radius});
-    }
+    propagate_error(by_radius(argv[1], center, &pt));
   } else {
-    const GeomObject *pt_obj = object_find(POINT, arg);
-    if (pt_obj == NULL) {
-      throw_error_fmt("point '%s' doesn't exist.", arg);
-    }
-    pt = pt_obj->pt1;
+    propagate_error(object_get_points(POINT, argv[1], &pt, NULL));
   }
 
   object_create(CIRCLE, center, pt, name, DEFAULT_COLOR);

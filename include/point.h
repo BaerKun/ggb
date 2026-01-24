@@ -27,6 +27,7 @@ GeomId point_create(Vec2 coord, Constraint cons);
 Vec2 point_get_coord(GeomId id);
 void point_ref(GeomId id);
 void point_unref(GeomId id);
+void point_clear();
 void point_move(const GeomId *pts, const Vec2 *dst, GeomSize count);
 
 #endif // GGB_POINT_H

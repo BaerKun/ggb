@@ -149,7 +149,7 @@ int object_delete(const char *name) {
   return 0;
 }
 
-void geom_dict_clear(GeomDict *dict) {
+static void geom_dict_clear(GeomDict *dict) {
   GeomSparseArray *array = &dict->array;
   array->size = 0;
   memset(array->bitmap, 0, array->cap / 8);
@@ -183,4 +183,22 @@ int check_name(const char *name) {
     }
   }
   return 0;
+}
+
+int parse_color(const char *str, Color *color) {
+  if (str == NULL) {
+    *color = (Color){};
+    return 0;
+  }
+
+  if (strlen(str) <= 6) {
+    char *end;
+    const uint32_t value = strtoul(str, &end, 16);
+    if (*end == 0) {
+      *color = (Color){value >> 16, value >> 8, value, 255};
+      return 0;
+    }
+  }
+
+  throw_error_fmt("color should be a hex-number like 'RRGGBB'. got '%s'.", str);
 }

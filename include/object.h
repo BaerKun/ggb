@@ -20,10 +20,8 @@ typedef struct {
   GeomId pt1, pt2;
 } GeomObject;
 
-#define DEFAULT_COLOR                                                          \
-  (Color) {}
-
 int check_name(const char *name);
+int parse_color(const char *str, Color *color);
 
 void object_module_init();
 void object_module_cleanup();

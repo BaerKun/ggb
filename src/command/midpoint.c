@@ -11,18 +11,19 @@ static Vec2 callback(GeomId argc, const Vec2 *argv) {
 }
 
 int cmd_midpoint(const int argc, const char **argv) {
-  static char *name;
-  static int color;
+  static char *name, *color_str;
   static struct argparse parse;
   static struct argparse_option opt[] = {OPT_STRING('n', "name", &name),
-                                         OPT_INTEGER('c', "color", &color),
+                                         OPT_STRING('c', "color", &color_str),
                                          OPT_END()};
 
-  name = NULL, color = -1;
+  name = color_str = NULL;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
+  Color color;
+  propagate_error(parse_color(color_str, &color));
   propagate_error(check_name(name));
 
   if (remaining < 2) throw_error("midpoint need 2 points.");
@@ -34,6 +35,6 @@ int cmd_midpoint(const int argc, const char **argv) {
   GeomId cons_argv[2] = {pt1, pt2};
   const GeomId pt =
       point_create((Vec2){}, (Constraint){2, cons_argv, callback});
-  object_create(POINT, pt, -1, name, DEFAULT_COLOR);
+  object_create(POINT, pt, -1, name, color);
   return 0;
 }

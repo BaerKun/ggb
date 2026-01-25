@@ -3,18 +3,20 @@
 #include "object.h"
 
 int cmd_line(const int argc, const char **argv) {
-  static char *name;
-  static int color, seg, ray;
+  static char *name, *color_str;
+  static int seg, ray;
   static struct argparse parse;
   static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name), OPT_INTEGER('c', "color", &color),
+      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
       OPT_BOOLEAN(0, "seg", &seg), OPT_BOOLEAN(0, "ray", &ray), OPT_END()};
 
-  name = NULL, color = -1, ray = seg = 0;
+  name = color_str = NULL, ray = seg = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
+  Color color;
+  propagate_error(parse_color(color_str, &color));
   propagate_error(check_name(name));
 
   if (remaining < 2) {
@@ -28,6 +30,6 @@ int cmd_line(const int argc, const char **argv) {
   ObjectType type = LINE;
   if (ray) type = RAY;
   if (seg) type = SEG;
-  object_create(type, pt1, pt2, name, DEFAULT_COLOR);
+  object_create(type, pt1, pt2, name, color);
   return 0;
 }

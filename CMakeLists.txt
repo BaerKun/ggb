@@ -9,12 +9,13 @@ file(GLOB_RECURSE SOURCES "src/*.c")
 add_executable(ggb ${SOURCES})
 target_include_directories(ggb PUBLIC include ${3rdparty_DIRS})
 target_link_libraries(ggb PRIVATE ${3rdparty_LIBS})
-#if (UNIX)
-#    # math.h
-#    target_link_libraries(ggb PRIVATE m)
-#endif ()
+if (UNIX)
+    # math.h
+    target_link_libraries(ggb PRIVATE m)
+endif ()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+set(ENABLE_ASAN OFF)
+if (ENABLE_ASAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     if (MSVC)
         target_compile_options(ggb PRIVATE /fsanitize=address)
         target_link_options(ggb PRIVATE /fsanitize=address)

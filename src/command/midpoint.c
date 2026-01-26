@@ -3,11 +3,9 @@
 #include "object.h"
 #include <string.h>
 
-static Vec2 callback(GeomId argc, const Vec2 *argv) {
-  const Vec2 p1 = argv[0];
-  const Vec2 p2 = argv[1];
-  const Vec2 res = {(p1.x + p2.x) / 2.f, (p1.y + p2.y) / 2.f};
-  return res;
+static void midpoint(const float inputs[4], float *outputs[2]) {
+  *outputs[0] = (inputs[0] + inputs[2]) / 2.f;
+  *outputs[1] = (inputs[1] + inputs[3]) / 2.f;
 }
 
 int cmd_midpoint(const int argc, const char **argv) {
@@ -28,13 +26,14 @@ int cmd_midpoint(const int argc, const char **argv) {
 
   if (remaining < 2) throw_error("midpoint need 2 points.");
 
-  GeomId pt1, pt2;
-  propagate_error(object_get_points(POINT, argv[0], &pt1, NULL));
-  propagate_error(object_get_points(POINT, argv[1], &pt2, NULL));
+  GeomId xyxy[4];
+  propagate_error(object_get_args(POINT, argv[0], xyxy));
+  propagate_error(object_get_args(POINT, argv[1], xyxy + 2));
 
-  GeomId cons_argv[2] = {pt1, pt2};
-  const GeomId pt =
-      point_create((Vec2){}, (Constraint){2, cons_argv, callback});
-  object_create(POINT, pt, -1, name, color);
+  const GeomId arg_x = graph_add_value(0);
+  const GeomId arg_y = graph_add_value(0);
+  const GeomId arg_xy[] = {arg_x, arg_y};
+  graph_add_constraint(4, xyxy, 2, arg_xy, midpoint);
+  object_create(POINT, arg_xy, name, color);
   return 0;
 }

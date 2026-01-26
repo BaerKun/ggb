@@ -34,7 +34,9 @@ int cmd_point(const int argc, const char **argv) {
     throw_error_fmt("y value should be a number. got '%s'.", argv[1]);
   }
 
-  const GeomId pt = point_create((Vec2){x, y}, (Constraint){});
-  object_create(POINT, pt, -1, name, color);
+  const GeomId arg_x = graph_add_value(x);
+  const GeomId arg_y = graph_add_value(y);
+  const GeomId arg_xy[] = {arg_x, arg_y};
+  object_create(POINT, arg_xy, name, color);
   return 0;
 }

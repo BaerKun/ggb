@@ -4,49 +4,20 @@
 #include <math.h>
 #include <stdlib.h>
 
-static inline float vec2_dist(const Vec2 v1, const Vec2 v2) {
-  const float dx = v1.x - v2.x;
-  const float dy = v1.y - v2.y;
-  return sqrtf(dx * dx + dy * dy);
-}
-
-static Vec2 by_const_radius(GeomInt argc, const Vec2 *argv) {
-  return (Vec2){argv[0].x + argv[1].x, argv[0].y};
-}
-
-static Vec2 by_segment_radius(GeomInt argc, const Vec2 *argv) {
-  return (Vec2){argv[0].x + vec2_dist(argv[1], argv[2]), argv[0].y};
-}
-
-static int by_radius(const char *arg, const GeomId center, GeomId *pt) {
-  if (*arg >= '0' && *arg <= '9') {
-    char *end;
-    const float radius = strtof(arg, &end);
-    if (*end) {
-      throw_error_fmt("constant radius need a number. got '%s'.", arg);
-    }
-
-    const GeomId helper = point_create((Vec2){radius}, FREE);
-    GeomId pts[] = {center, helper};
-    *pt = point_create(ZERO_POINT, (Constraint){2, pts, by_const_radius});
-  } else {
-    GeomId seg_p1, seg_p2;
-    propagate_error(object_get_points(SEG, arg, &seg_p1, &seg_p2));
-    GeomId pts[] = {center, seg_p1, seg_p2};
-    *pt = point_create(ZERO_POINT, (Constraint){3, pts, by_segment_radius});
-  }
-  return 0;
+static void radius_from_point(const float xyxy[4], float *radius[1]) {
+  const float dx = xyxy[2] - xyxy[0];
+  const float dy = xyxy[3] - xyxy[1];
+  *radius[0] = sqrtf(dx * dx + dy * dy);
 }
 
 int cmd_circle(const int argc, const char **argv) {
   static char *name, *color_str;
-  static int as_radius;
   static struct argparse parse;
-  static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
-      OPT_BOOLEAN(0, "as-radius", &as_radius), OPT_END()};
+  static struct argparse_option opt[] = {OPT_STRING('n', "name", &name),
+                                         OPT_STRING('c', "color", &color_str),
+                                         OPT_END()};
 
-  name = color_str = NULL, as_radius = 0;
+  name = color_str = NULL;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
@@ -56,19 +27,25 @@ int cmd_circle(const int argc, const char **argv) {
   propagate_error(check_name(name));
 
   if (remaining < 2) {
-    throw_error("'circle' need a center and a point on circle\n"
-                "           (or radius when use '--as-radius').");
+    throw_error("'circle' need a center and a radius or point on circle.");
   }
 
-  GeomId center, pt;
-  propagate_error(object_get_points(POINT, argv[0], &center, NULL));
+  GeomId cr_args[3];
+  propagate_error(object_get_args(POINT, argv[0], cr_args));
 
-  if (as_radius) {
-    propagate_error(by_radius(argv[1], center, &pt));
+  const char *str = argv[1];
+  if (*str >= '0' && *str <= '9') {
+    char *end;
+    const float radius = strtof(str, &end);
+    if (*end) throw_error_fmt("constant radius need a number. got '%s'.", str);
+    cr_args[2] = graph_add_value(radius);
   } else {
-    propagate_error(object_get_points(POINT, argv[1], &pt, NULL));
+    GeomId inputs[4] = {cr_args[0], cr_args[1]};
+    propagate_error(object_get_args(POINT, str, inputs + 2));
+    cr_args[2] = graph_add_value(0);
+    graph_add_constraint(4, inputs, 1, cr_args + 2, radius_from_point);
   }
 
-  object_create(CIRCLE, center, pt, name, color);
+  object_create(CIRCLE, cr_args, name, color);
   return 0;
 }

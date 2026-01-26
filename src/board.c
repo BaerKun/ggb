@@ -74,63 +74,41 @@ static inline bool is_default_color(const Color color) {
   return color.a == 0;
 }
 
-static inline Vec2 get_end_point(const Vec2 p, const Vec2 q) {
-  const Vec2 v = {q.x - p.x, q.y - p.y};
-  const float norm = sqrtf(v.x * v.x + v.y * v.y);
-  if (norm == 0) return p;
-  const float scale = 4096.f / norm;
-  return (Vec2){p.x + v.x * scale, p.y + v.y * scale};
-}
-
-static inline float vec2_dist(const Vec2 p, const Vec2 q) {
-  const float dx = p.x - q.x;
-  const float dy = p.y - q.y;
-  return sqrtf(dx * dx + dy * dy);
-}
-
 static void get_draw_buffer(const GeomObject *obj) {
   DrawBuffer buff;
+  const GeomId *args = obj->args;
   switch (obj->type) {
-  case POINT:
-    buff.data.pt = point_get_coord(obj->pt1);
+  case POINT: {
+    const float x = graph_get_value(args[0]);
+    const float y = graph_get_value(args[1]);
+    buff.data.pt = (Vec2){x, y};
     buff.color =
         is_default_color(obj->color) ? default_config.color.point : obj->color;
     draw_queue_push(&draw_buffer.point, buff);
     break;
-  case CIRCLE:
-    buff.data.cr.center = point_get_coord(obj->pt1);
-    buff.data.cr.radius =
-        vec2_dist(buff.data.cr.center, point_get_coord(obj->pt2));
+  }
+  case CIRCLE: {
+    const float cx = graph_get_value(args[0]);
+    const float cy = graph_get_value(args[1]);
+    buff.data.cr.center = (Vec2){cx, cy};
+    buff.data.cr.radius = graph_get_value(args[2]);
     buff.color =
         is_default_color(obj->color) ? default_config.color.circle : obj->color;
     draw_queue_push(&draw_buffer.circle, buff);
     break;
-  case SEG:
-    buff.data.ln.pt1 = point_get_coord(obj->pt1);
-    buff.data.ln.pt2 = point_get_coord(obj->pt2);
-    buff.color =
-        is_default_color(obj->color) ? default_config.color.line : obj->color;
-    draw_queue_push(&draw_buffer.line, buff);
-    break;
-  case RAY:
-    buff.data.ln.pt1 = point_get_coord(obj->pt1);
-    buff.data.ln.pt2 =
-        get_end_point(buff.data.ln.pt1, point_get_coord(obj->pt2));
-    buff.color =
-        is_default_color(obj->color) ? default_config.color.line : obj->color;
-    draw_queue_push(&draw_buffer.line, buff);
-    break;
-  case LINE: {
-    const Vec2 p1 = point_get_coord(obj->pt1);
-    const Vec2 p2 = point_get_coord(obj->pt2);
-    buff.data.ln.pt1 = get_end_point(p1, p2);
-    buff.data.ln.pt2 = get_end_point(p2, p1);
+  }
+  default: {
+    const float nx = graph_get_value(args[0]);
+    const float ny = graph_get_value(args[1]);
+    const float dd = graph_get_value(args[2]);
+    const float t1 = graph_get_value(args[3]);
+    const float t2 = graph_get_value(args[4]);
+    buff.data.ln.pt1 = (Vec2){dd * nx + t1 * ny, dd * ny - t1 * nx};
+    buff.data.ln.pt2 = (Vec2){dd * nx + t2 * ny, dd * ny - t2 * nx};
     buff.color =
         is_default_color(obj->color) ? default_config.color.line : obj->color;
     draw_queue_push(&draw_buffer.line, buff);
   }
-  default:
-    break;
   }
 }
 

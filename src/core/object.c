@@ -35,12 +35,12 @@ static inline void geom_dict_free(const GeomDict *dict) {
 
 void object_module_init() {
   geom_dict_init(&objects, 64);
-  point_module_init(64);
+  computation_graph_init(256);
 }
 
 void object_module_cleanup() {
   geom_dict_free(&objects);
-  point_module_cleanup();
+  computation_graph_cleanup();
 }
 
 static void get_default_name(char *name) {
@@ -79,18 +79,6 @@ static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
   return obj;
 }
 
-void object_create(const ObjectType type, const GeomId pt1, const GeomId pt2,
-                   const char *name, const Color color) {
-  if (objects.array.size == objects.array.cap) geom_dict_resize(&objects);
-  GeomObject *obj = geom_dict_insert(&objects, name);
-  obj->type = type;
-  obj->color = color;
-  obj->pt1 = pt1;
-  obj->pt2 = pt2;
-  point_ref(pt1);
-  point_ref(pt2);
-}
-
 static inline uint64_t ctz(const uint64_t value) {
 #if defined(__GNUC__) || defined(__clang__)
   const uint64_t res = __builtin_ctzll(value);
@@ -100,6 +88,21 @@ static inline uint64_t ctz(const uint64_t value) {
 #endif
   return res;
 }
+
+void object_create(const ObjectType type, const GeomId *args,
+                   const char *name, const Color color) {
+  if (objects.array.size == objects.array.cap) geom_dict_resize(&objects);
+  GeomObject *obj = geom_dict_insert(&objects, name);
+  obj->type = type;
+  obj->color = color;
+
+  static const int argc[] = {2, 3, 5};
+  for (int i = 0; i < argc[ctz(type)]; i++) {
+    obj->args[i] = args[i];
+    graph_ref_value(args[i]);
+  }
+}
+
 
 static void object_not_exists(const ObjectType type, const char *name) {
   if (type == ANY) {
@@ -115,8 +118,7 @@ static void object_error_type(const ObjectType target, const ObjectType got,
                  type_str[ctz(target)]);
 }
 
-int object_get_points(const ObjectType types, const char *name, GeomId *pt1,
-                      GeomId *pt2) {
+int object_get_args(const ObjectType types, const char *name, GeomId *args) {
   const GeomInt id = string_hash_find(&objects.hash, name);
   if (id == -1) {
     object_not_exists(types, name);
@@ -129,8 +131,8 @@ int object_get_points(const ObjectType types, const char *name, GeomId *pt1,
     return MSG_ERROR;
   }
 
-  if (pt1) *pt1 = obj->pt1;
-  if (pt2) *pt2 = obj->pt2;
+  static const int argc[] = {2, 3, 4};
+  memcpy(args, obj->args, sizeof(GeomId) * argc[ctz(obj->type)]);
   return 0;
 }
 
@@ -141,9 +143,12 @@ int object_delete(const char *name) {
     return MSG_ERROR;
   }
 
+  static const int argc[] = {2, 3, 5};
   const GeomObject *obj = objects.array.data + id;
-  point_unref(obj->pt1);
-  point_unref(obj->pt2);
+  for (int i = 0; i < argc[ctz(obj->type)]; i++) {
+    graph_unref_value(obj->args[i]);
+  }
+
   objects.array.bitmap[id >> 6] ^= 1llu << (id & 63);
   objects.array.size--;
   return 0;
@@ -158,7 +163,7 @@ static void geom_dict_clear(GeomDict *dict) {
 
 void object_delete_all() {
   geom_dict_clear(&objects);
-  point_clear();
+  computation_graph_clear();
 }
 
 void object_traverse(void (*callback)(const GeomObject *)) {

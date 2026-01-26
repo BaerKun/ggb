@@ -2,8 +2,10 @@
 #include "object.h"
 #include <stdio.h>
 
-static inline int get_coord_from_str(const char *str, Vec2 *coord) {
-  return sscanf(str, "%f,%f", &coord->x, &coord->y) == 2;
+static inline int parse_coord(const char *str, Vec2 *coord) {
+  if (sscanf(str, "%f,%f", &coord->x, &coord->y) == 2) return 0;
+  throw_error_fmt("'%s' is an invalid coordinate. must be '%%f,%%f'",
+                str);
 }
 
 int cmd_move_pt(const int argc, const char **argv) {
@@ -14,15 +16,12 @@ int cmd_move_pt(const int argc, const char **argv) {
     throw_error("destination not provided.");
   }
 
-  GeomId pt;
-  propagate_error(object_get_points(POINT, argv[1], &pt, NULL));
+  GeomId xy[2];
+  propagate_error(object_get_args(POINT, argv[1], xy));
 
   Vec2 dst;
-  if (!get_coord_from_str(argv[2], &dst)) {
-    throw_error_fmt("'%s' is an invalid coordinate. must be '%%f,%%f'",
-                    argv[2]);
-  }
+  propagate_error(parse_coord(argv[2], &dst));
 
-  point_move(&pt, &dst, 1);
+  graph_change_value(2, xy, (const float *)&dst);
   return 0;
 }

@@ -239,7 +239,53 @@ typedef enum bool { false = 0, true = !false } bool;
 #define RL_BOOL_TYPE
 #endif
 
-#include "types.h"
+// Vector2, 2 components
+typedef struct Vector2 {
+  float x; // Vector x component
+  float y; // Vector y component
+} Vector2;
+
+// Vector3, 3 components
+typedef struct Vector3 {
+  float x; // Vector x component
+  float y; // Vector y component
+  float z; // Vector z component
+} Vector3;
+
+// Vector4, 4 components
+typedef struct Vector4 {
+  float x; // Vector x component
+  float y; // Vector y component
+  float z; // Vector z component
+  float w; // Vector w component
+} Vector4;
+
+// Quaternion, 4 components (Vector4 alias)
+typedef Vector4 Quaternion;
+
+// Matrix, 4x4 components, column major, OpenGL style, right-handed
+typedef struct Matrix {
+  float m0, m4, m8, m12;  // Matrix first row (4 components)
+  float m1, m5, m9, m13;  // Matrix second row (4 components)
+  float m2, m6, m10, m14; // Matrix third row (4 components)
+  float m3, m7, m11, m15; // Matrix fourth row (4 components)
+} Matrix;
+
+// Color, 4 components, R8G8B8A8 (32bit)
+typedef struct Color {
+  unsigned char r; // Color red value
+  unsigned char g; // Color green value
+  unsigned char b; // Color blue value
+  unsigned char a; // Color alpha value
+} Color;
+
+// Rectangle, 4 components
+typedef struct Rectangle {
+  float x;      // Rectangle top-left corner position x
+  float y;      // Rectangle top-left corner position y
+  float width;  // Rectangle width
+  float height; // Rectangle height
+} Rectangle;
 
 // Image, pixel data stored in CPU memory (RAM)
 typedef struct Image {
@@ -1007,12 +1053,12 @@ bool rl_is_key_pressed(int key);
 int rl_get_char_pressed();
 void rl_set_exit_key(int key);
 
-void rl_draw_line_v(Vec2 start, Vec2 end, Color color);
-void rl_draw_line_ex(Vec2 start, Vec2 end, float thick, Color color);
-void rl_draw_circle_v(Vec2 center, float radius, Color color);
-void rl_draw_circle_lines_v(Vec2 center, float radius, Color color);
+void rl_draw_line_v(Vector2 start, Vector2 end, Color color);
+void rl_draw_line_ex(Vector2 start, Vector2 end, float thick, Color color);
+void rl_draw_circle_v(Vector2 center, float radius, Color color);
+void rl_draw_circle_lines_v(Vector2 center, float radius, Color color);
 void rl_draw_rectangle(int x, int y, int width, int height, Color color);
-void rl_draw_rectangle_v(Vec2 pos, Vec2 size, Color color);
+void rl_draw_rectangle_v(Vector2 pos, Vector2 size, Color color);
 void rl_draw_text(const char *text, int x, int y, int size, Color color);
 
 

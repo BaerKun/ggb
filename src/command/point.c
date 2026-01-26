@@ -15,7 +15,7 @@ int cmd_point(const int argc, const char **argv) {
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
-  Color color;
+  int32_t color;
   propagate_error(parse_color(color_str, &color));
   propagate_error(check_name(name));
 

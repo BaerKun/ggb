@@ -26,28 +26,16 @@ static GraphNode *nodes;
 static GeomId *dep_next;
 static Queue queue;
 
-static void graph_vert_resize_callback(const CGraphSize old_cap,
-                                       const CGraphSize new_cap) {
-  void *mem = realloc(nodes, new_cap * sizeof(GraphNode));
-  if (!mem) abort();
-  nodes = mem;
-  mem = realloc(queue.elems, new_cap * sizeof(GraphNode));
-  if (!mem) abort();
-  queue.elems = mem;
-}
-
-static void graph_edge_resize_callback(const CGraphSize old_cap,
-                                       const CGraphSize new_cap) {
-  void *mem = realloc(dep_next, new_cap * sizeof(GeomId));
-  if (!mem) abort();
-  dep_next = mem;
-  memset(dep_next + old_cap, -1, (new_cap - old_cap) * sizeof(GeomId));
-}
+static void graph_vert_resize_callback(CGraphSize, CGraphSize);
+static void graph_edge_resize_callback(CGraphSize, CGraphSize);
+static void enqueue(Queue *q, const GeomId id) { q->elems[q->rear++] = id; }
+static GeomId dequeue(Queue *q) { return q->elems[q->front++]; }
+static void queue_clear(Queue *q) { q->front = q->rear = 0; }
+static bool queue_empty(const Queue *q) { return q->front == q->rear; }
 
 void computation_graph_init(const GeomSize init_size) {
   nodes = malloc(init_size * sizeof(GraphNode));
   dep_next = malloc(init_size * sizeof(GeomId));
-
   queue.elems = malloc(init_size * sizeof(GeomId));
 
   cgraphInit(&graph, true, init_size, init_size);
@@ -112,11 +100,6 @@ void graph_add_constraint(const GeomSize input_size, const GeomId *inputs,
 }
 
 float graph_get_value(const GeomId id) { return nodes[id].value; }
-
-static void enqueue(Queue *q, const GeomId id) { q->elems[q->rear++] = id; }
-static GeomId dequeue(Queue *q) { return q->elems[q->front++]; }
-static void queue_clear(Queue *q) { q->front = q->rear = 0; }
-static bool queue_empty(const Queue *q) { return q->front == q->rear; }
 
 void graph_ref_value(const GeomId id) {
   if (id >= 0) nodes[id].ref_count++;
@@ -183,4 +166,22 @@ void graph_change_value(const GeomSize count, const GeomId *ids,
     }
   }
   cgraphIterRelease(iter);
+}
+
+static void graph_vert_resize_callback(const CGraphSize old_cap,
+                                       const CGraphSize new_cap) {
+  void *mem = realloc(nodes, new_cap * sizeof(GraphNode));
+  if (!mem) abort();
+  nodes = mem;
+  mem = realloc(queue.elems, new_cap * sizeof(GraphNode));
+  if (!mem) abort();
+  queue.elems = mem;
+}
+
+static void graph_edge_resize_callback(const CGraphSize old_cap,
+                                       const CGraphSize new_cap) {
+  void *mem = realloc(dep_next, new_cap * sizeof(GeomId));
+  if (!mem) abort();
+  dep_next = mem;
+  memset(dep_next + old_cap, -1, (new_cap - old_cap) * sizeof(GeomId));
 }

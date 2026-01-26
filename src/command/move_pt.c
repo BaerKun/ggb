@@ -1,27 +1,39 @@
 #include "message.h"
 #include "object.h"
 #include <stdio.h>
+#include <string.h>
 
-static inline int parse_coord(const char *str, Vec2 *coord) {
-  if (sscanf(str, "%f,%f", &coord->x, &coord->y) == 2) return 0;
-  throw_error_fmt("'%s' is an invalid coordinate. must be '%%f,%%f'",
-                str);
-}
+#define MAX_POINT_COUNT 10
 
-int cmd_move_pt(const int argc, const char **argv) {
-  if (argc == 1) {
-    throw_error("point and destination not provided.");
+int cmd_move_pt(int argc, const char **argv) {
+  static const char help[] = "move-pt <from...> to <to...>.";
+  argc--;
+  argv++;
+  if (argc == 0) throw_error(help);
+
+  GeomId src[MAX_POINT_COUNT * 2];
+  float dst[MAX_POINT_COUNT * 2];
+
+  GeomSize count = 0;
+  for (; count < argc; count++) {
+    if (strcmp(argv[count], "to") == 0) break;
   }
-  if (argc == 2) {
-    throw_error("destination not provided.");
+
+  if (count == argc) throw_error(help);
+  if (count != argc - count - 1) throw_error("from and to count not equal.");
+
+  for (GeomSize i = 0; i < count; i++) {
+    propagate_error(object_get_args(POINT, argv[i], src + i * 2));
   }
 
-  GeomId xy[2];
-  propagate_error(object_get_args(POINT, argv[1], xy));
+  const char **arg_dst = argv + count + 1;
+  for (int i = 0; i < count; i++) {
+    const char *str = arg_dst[i];
+    if (sscanf(str, "%f,%f", dst + i * 2, dst + i * 2 + 1) != 2) {
+      throw_error_fmt("'%s' isn't a valid coordinate. must be '%%f,%%f'", str);
+    }
+  }
 
-  Vec2 dst;
-  propagate_error(parse_coord(argv[2], &dst));
-
-  graph_change_value(2, xy, (const float *)&dst);
+  graph_change_value(count * 2, src, dst);
   return 0;
 }

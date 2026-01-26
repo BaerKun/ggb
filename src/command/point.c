@@ -20,7 +20,7 @@ int cmd_point(const int argc, const char **argv) {
   propagate_error(check_name(name));
 
   if (remaining < 2) {
-    throw_error("point need x and y value.");
+    throw_error("point <x> <y>");
   }
 
   char *end;
@@ -36,7 +36,7 @@ int cmd_point(const int argc, const char **argv) {
 
   const GeomId arg_x = graph_add_value(x);
   const GeomId arg_y = graph_add_value(y);
-  const GeomId arg_xy[] = {arg_x, arg_y};
-  object_create(POINT, arg_xy, name, color);
+  const GeomId args[] = {arg_x, arg_y};
+  object_create(POINT, args, name, color);
   return 0;
 }

@@ -4,16 +4,24 @@
 #include <math.h>
 
 static void line_from_2points(const float xyxy[4], float *line[3]) {
-  const float dx = xyxy[2] - xyxy[0];
-  const float dy = xyxy[3] - xyxy[1];
+  const float x1 = xyxy[0];
+  const float y1 = xyxy[1];
+  const float x2 = xyxy[2];
+  const float y2 = xyxy[3];
+  const float dx = x2 - x1;
+  const float dy = y2 - y1;
   const float dist = sqrtf(dx * dx + dy * dy);
-  *line[0] = -dy / dist;
-  *line[1] = dx / dist;
-  *line[2] = (xyxy[1] * xyxy[2] - xyxy[0] * xyxy[3]) / dist; // directed
+  *line[0] = -dy / dist; // nx
+  *line[1] = dx / dist; // ny
+  *line[2] = (x2 * y1 - x1 * y2) / dist; // dd
 }
 
 static void clip_end_point(const float inputs[4], float *t[1]) {
-  *t[0] = inputs[1] * inputs[2] - inputs[0] * inputs[3]; // x*ny - y*nx
+  const float nx = inputs[0];
+  const float ny = inputs[1];
+  const float px = inputs[2];
+  const float py = inputs[3];
+  *t[0] = px * ny - nx * py;
 }
 
 int cmd_line(const int argc, const char **argv) {
@@ -34,7 +42,7 @@ int cmd_line(const int argc, const char **argv) {
   propagate_error(check_name(name));
 
   if (remaining < 2) {
-    throw_error("'line' need 2 points. [--seg]");
+    throw_error("line <point> <point> [--seg]");
   }
 
   GeomId xyxy[4];
@@ -46,8 +54,8 @@ int cmd_line(const int argc, const char **argv) {
   const GeomId dd = graph_add_value(0);
   const GeomId t1 = graph_add_value(-HUGE_VALUE);
   const GeomId t2 = graph_add_value(HUGE_VALUE);
-  const GeomId line_args[] = {nx, ny, dd, t1, t2};
-  graph_add_constraint(4, xyxy, 3, line_args, line_from_2points);
+  const GeomId args[] = {nx, ny, dd, t1, t2};
+  graph_add_constraint(4, xyxy, 3, args, line_from_2points);
   if (ray || seg) {
     const GeomId inputs[] = {nx, ny, xyxy[0], xyxy[1]};
     graph_add_constraint(4, inputs, 1, &t1, clip_end_point);
@@ -56,6 +64,6 @@ int cmd_line(const int argc, const char **argv) {
     const GeomId inputs[] = {nx, ny, xyxy[2], xyxy[3]};
     graph_add_constraint(4, inputs, 1, &t2, clip_end_point);
   }
-  object_create(LINE, line_args, name, color);
+  object_create(LINE, args, name, color);
   return 0;
 }

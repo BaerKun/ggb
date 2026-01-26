@@ -1,7 +1,7 @@
 #include "commandline.h"
-#include "str_hash.h"
 #include "command.h"
 #include "message.h"
+#include "str_hash.h"
 
 #define ARGV_SIZE 24
 
@@ -12,13 +12,11 @@ typedef struct {
   CommandFunction func;
 } CommandMapEntry;
 
-CommandMapEntry cmd_map[] = {{"point", cmd_point},
-                             {"line", cmd_line},
-                             {"circle", cmd_circle},
-                             {"delete", cmd_delete},
-                             {"move-pt", cmd_move_pt},
-                             {"load-src", cmd_load_src},
-                             {"midpoint", cmd_midpoint}};
+CommandMapEntry cmd_map[] = {
+    {"point", cmd_point},     {"line", cmd_line},
+    {"circle", cmd_circle},   {"midpoint", cmd_midpoint},
+    {"perp", cmd_perp},       {"delete", cmd_delete},
+    {"move-pt", cmd_move_pt}, {"load-src", cmd_load_src}};
 
 const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));
 static StringHashTable cmd_hash;

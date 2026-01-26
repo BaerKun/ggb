@@ -27,25 +27,27 @@ int cmd_circle(const int argc, const char **argv) {
   propagate_error(check_name(name));
 
   if (remaining < 2) {
-    throw_error("'circle' need a center and a radius or point on circle.");
+    throw_error("circle <center> <radius:number / point:on circle>");
   }
 
-  GeomId cr_args[3];
-  propagate_error(object_get_args(POINT, argv[0], cr_args));
+  GeomId center[2];
+  propagate_error(object_get_args(POINT, argv[0], center));
 
+  GeomId radius;
   const char *str = argv[1];
   if (*str >= '0' && *str <= '9') {
     char *end;
-    const float radius = strtof(str, &end);
+    const float value = strtof(str, &end);
     if (*end) throw_error_fmt("constant radius need a number. got '%s'.", str);
-    cr_args[2] = graph_add_value(radius);
+    radius = graph_add_value(value);
   } else {
-    GeomId inputs[4] = {cr_args[0], cr_args[1]};
+    GeomId inputs[4] = {center[0], center[1]};
     propagate_error(object_get_args(POINT, str, inputs + 2));
-    cr_args[2] = graph_add_value(0);
-    graph_add_constraint(4, inputs, 1, cr_args + 2, radius_from_point);
+    radius = graph_add_value(0);
+    graph_add_constraint(4, inputs, 1, &radius, radius_from_point);
   }
 
-  object_create(CIRCLE, cr_args, name, color);
+  const GeomId args[] = {center[0], center[1], radius};
+  object_create(CIRCLE, args, name, color);
   return 0;
 }

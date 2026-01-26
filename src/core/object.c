@@ -164,7 +164,7 @@ static void geom_dict_clear(GeomDict *dict) {
 
 static void get_default_name(char *name) {
   static unsigned int id = 1;
-  sprintf(name, "$%05u", id++);
+  sprintf(name, "#%05u", id++);
 }
 
 static void geom_dict_resize(GeomDict *dict) {

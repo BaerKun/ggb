@@ -6,7 +6,7 @@
 #define MAX_POINT_COUNT 10
 
 int cmd_move_pt(int argc, const char **argv) {
-  static const char help[] = "move-pt <from...> to <to...>.";
+  static const char help[] = "move-pt <from...> to <to...>";
   argc--;
   argv++;
   if (argc == 0) throw_error(help);

@@ -24,7 +24,7 @@ int cmd_midpoint(const int argc, const char **argv) {
   propagate_error(parse_color(color_str, &color));
   propagate_error(check_name(name));
 
-  if (remaining < 2) throw_error("midpoint need 2 points.");
+  if (remaining < 2) throw_error("midpoint <point> <point>");
 
   GeomId xyxy[4];
   propagate_error(object_get_args(POINT, argv[0], xyxy));
@@ -32,8 +32,8 @@ int cmd_midpoint(const int argc, const char **argv) {
 
   const GeomId arg_x = graph_add_value(0);
   const GeomId arg_y = graph_add_value(0);
-  const GeomId arg_xy[] = {arg_x, arg_y};
-  graph_add_constraint(4, xyxy, 2, arg_xy, midpoint);
-  object_create(POINT, arg_xy, name, color);
+  const GeomId args[] = {arg_x, arg_y};
+  graph_add_constraint(4, xyxy, 2, args, midpoint);
+  object_create(POINT, args, name, color);
   return 0;
 }

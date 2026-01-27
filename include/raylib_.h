@@ -1059,7 +1059,11 @@ void rl_draw_circle_v(Vector2 center, float radius, Color color);
 void rl_draw_circle_lines_v(Vector2 center, float radius, Color color);
 void rl_draw_rectangle(int x, int y, int width, int height, Color color);
 void rl_draw_rectangle_v(Vector2 pos, Vector2 size, Color color);
-void rl_draw_text(const char *text, int x, int y, int size, Color color);
+void rl_draw_rectangle_rec(Rectangle rec, Color color);
 
+
+Font rl_get_font_default();
+void rl_draw_text(const char *text, int x, int y, int size, Color color);
+void rl_draw_text_ex(Font font, const char *text, Vector2 pos, float size, float spacing, Color color);
 
 #endif // RAYLIB_H

@@ -13,10 +13,11 @@ typedef struct {
 } CommandMapEntry;
 
 CommandMapEntry cmd_map[] = {
-    {"point", cmd_point},     {"line", cmd_line},
-    {"circle", cmd_circle},   {"midpoint", cmd_midpoint},
-    {"perp", cmd_perp},       {"delete", cmd_delete},
-    {"move-pt", cmd_move_pt}, {"load-src", cmd_load_src}};
+    {"point", cmd_point},       {"line", cmd_line},
+    {"circle", cmd_circle},     {"midpoint", cmd_midpoint},
+    {"perp", cmd_perp},         {"parallel", cmd_parallel},
+    {"bisector", cmd_bisector}, {"delete", cmd_delete},
+    {"move-pt", cmd_move_pt},   {"load-src", cmd_load_src}};
 
 const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));
 static StringHashTable cmd_hash;

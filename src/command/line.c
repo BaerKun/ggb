@@ -11,9 +11,11 @@ static void line_from_2points(const float xyxy[4], float *line[3]) {
   const float dx = x2 - x1;
   const float dy = y2 - y1;
   const float dist = sqrtf(dx * dx + dy * dy);
-  *line[0] = -dy / dist; // nx
-  *line[1] = dx / dist; // ny
-  *line[2] = (x2 * y1 - x1 * y2) / dist; // dd
+  const float nx = -dy / dist;
+  const float ny = dx / dist;
+  *line[0] = nx;
+  *line[1] = ny;
+  *line[2] = nx * x1 + ny * y1; // dd = n · (x, y)
 }
 
 static void clip_end_point(const float inputs[4], float *t[1]) {
@@ -21,7 +23,7 @@ static void clip_end_point(const float inputs[4], float *t[1]) {
   const float ny = inputs[1];
   const float px = inputs[2];
   const float py = inputs[3];
-  *t[0] = px * ny - nx * py;
+  *t[0] = ny * px - nx * py; // (ny, -nx) · (px, py)
 }
 
 int cmd_line(const int argc, const char **argv) {
@@ -41,9 +43,7 @@ int cmd_line(const int argc, const char **argv) {
   propagate_error(parse_color(color_str, &color));
   propagate_error(check_name(name));
 
-  if (remaining < 2) {
-    throw_error("line <point> <point> [--seg]");
-  }
+  if (remaining < 2) throw_error("line <point> <point> [--seg]");
 
   GeomId xyxy[4];
   propagate_error(object_get_args(POINT, argv[0], xyxy));

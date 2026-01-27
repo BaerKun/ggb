@@ -23,4 +23,8 @@ void rl_draw_circle_v(Vec2 center, float radius, Color color) { DrawCircleV(cent
 void rl_draw_circle_lines_v(Vec2 center, float radius, Color color) {DrawCircleLinesV(center, radius, color); }
 void rl_draw_rectangle(int x, int y, int width, int height, Color color) { DrawRectangle(x, y, width, height, color); }
 void rl_draw_rectangle_v(Vec2 pos, Vec2 size, Color color) { DrawRectangleV(pos, size, color); }
+void rl_draw_rectangle_rec(Rectangle rec, Color color) { DrawRectangleRec(rec, color); }
+
+Font rl_get_font_default() { return GetFontDefault(); }
 void rl_draw_text(const char *text, int x, int y, int size, Color color) { DrawText(text, x, y, size, color); }
+void rl_draw_text_ex(Font font, const char *text, Vector2 pos, float size, float spacing, Color color) { DrawTextEx(font, text, pos, size, spacing, color); }

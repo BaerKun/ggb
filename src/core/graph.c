@@ -107,12 +107,14 @@ void graph_ref_value(const GeomId id) {
   if (id >= 0) internal.nodes[id].ref_count++;
 }
 
-void graph_unref_value(const GeomId id) {
-  if (id < 0) return;
-  if (--internal.nodes[id].ref_count > 0) return;
-
+void graph_unref_value(const GeomSize count, const GeomId *ids) {
   queue_clear(&internal.queue);
-  enqueue(&internal.queue, id);
+  for (GeomSize i = 0; i < count; i++) {
+    const GeomId id = ids[i];
+    if (id < 0) continue;
+    if (--internal.nodes[id].ref_count <= 0) enqueue(&internal.queue, id);
+  }
+
   while (!queue_empty(&internal.queue)) {
     const GeomId node_id = dequeue(&internal.queue);
     for (GeomId dep = internal.nodes[node_id].dep_head; dep != -1;

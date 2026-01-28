@@ -17,7 +17,7 @@ int cmd_point(const int argc, const char **argv) {
 
   int32_t color;
   propagate_error(parse_color(color_str, &color));
-  propagate_error(check_name(name));
+  propagate_error(check_new_name(name));
 
   if (remaining < 2) {
     throw_error("point <x> <y>");

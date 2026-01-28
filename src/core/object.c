@@ -17,8 +17,8 @@ typedef struct {
 } GeomDict;
 
 static GeomDict objects;
-static const GeomSize type_argc[] = {2, 3, 5};
-static const char *type_str[] = {"point", "circle", "line"};
+static const GeomSize type_argc[] = {0, 2, 3, 0, 5};
+static const char *type_str[] = {NULL, "point", "circle", NULL, "line"};
 
 static uint64_t ctz(uint64_t value);
 static void geom_dict_init(GeomDict *, GeomSize);
@@ -45,7 +45,7 @@ void object_create(const ObjectType type, const GeomId *args, const char *name,
   obj->type = type;
   obj->color = color;
 
-  for (int i = 0; i < type_argc[ctz(type)]; i++) {
+  for (int i = 0; i < type_argc[type]; i++) {
     obj->args[i] = args[i];
     graph_ref_value(args[i]);
   }
@@ -59,9 +59,7 @@ int object_delete(const char *name) {
   }
 
   const GeomObject *obj = objects.array.data + id;
-  for (int i = 0; i < type_argc[ctz(obj->type)]; i++) {
-    graph_unref_value(obj->args[i]);
-  }
+  graph_unref_value(type_argc[obj->type], obj->args);
 
   objects.array.bitmap[id >> 6] ^= 1llu << (id & 63);
   objects.array.size--;
@@ -85,25 +83,24 @@ void object_traverse(void (*callback)(const GeomObject *)) {
   }
 }
 
-int object_get_args(const ObjectType types, const char *name, GeomId *args) {
+ObjectType object_get_args(const ObjectType types, const char *name, GeomId *args) {
   const GeomInt id = string_hash_find(&objects.hash, name);
   if (id == -1) {
     object_not_exists(types, name);
-    return MSG_ERROR;
+    return UNKNOWN;
   }
 
   const GeomObject *obj = objects.array.data + id;
   if (!(obj->type & types)) {
     object_error_type(types, obj->type, name);
-    return MSG_ERROR;
+    return UNKNOWN;
   }
 
-  static const int argc[] = {2, 3, 4};
-  memcpy(args, obj->args, sizeof(GeomId) * argc[ctz(obj->type)]);
-  return 0;
+  memcpy(args, obj->args, sizeof(GeomId) * type_argc[obj->type]);
+  return obj->type;
 }
 
-int check_name(const char *name) {
+int check_new_name(const char *name) {
   if (name != NULL) {
     if (strlen(name) > 7) {
       throw_error_fmt("name '%s' is too long. ( <= %d )", name, 7);

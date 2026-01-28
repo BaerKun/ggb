@@ -1,7 +1,6 @@
 #include "board.h"
 #include "object.h"
 #include "raylib_.h"
-#include "types.h"
 #include <stdlib.h>
 
 typedef Vector2 Vec2;
@@ -36,23 +35,23 @@ static struct {
   Vec2 xform_translate;
   float xform_rotate[2][2];
   struct {
-    struct {
-      Color point, circle, line;
-    } color;
-  } default_config;
+    Color point, circle, line;
+  } default_color;
   struct {
     DrawQueue point, line, circle;
-  } draw_buffer;
+  } draw_queue;
+
 } board;
 
 static void draw_queue_init(DrawQueue *q, GeomSize init_size);
 static void draw_queue_push(DrawQueue *q, DrawBuffer elem);
 static void get_draw_buffer(const GeomObject *obj);
 
-void board_init(float x, float y, float width, float height) {
-  board.default_config.color.point = DARKBLUE;
-  board.default_config.color.circle = GRAY;
-  board.default_config.color.line = GRAY;
+void board_init(const float x, const float y, const float width,
+                const float height) {
+  board.default_color.point = DARKBLUE;
+  board.default_color.circle = GRAY;
+  board.default_color.line = GRAY;
 
   board.window = (Rectangle){x, y, width, height};
   board.xform_scale = 1.f;
@@ -60,9 +59,9 @@ void board_init(float x, float y, float width, float height) {
   board.xform_rotate[0][0] = 1.f;
   board.xform_rotate[1][1] = -1.f;
 
-  draw_queue_init(&board.draw_buffer.point, 64);
-  draw_queue_init(&board.draw_buffer.circle, 16);
-  draw_queue_init(&board.draw_buffer.line, 32);
+  draw_queue_init(&board.draw_queue.point, 64);
+  draw_queue_init(&board.draw_queue.circle, 16);
+  draw_queue_init(&board.draw_queue.line, 32);
   object_module_init();
 }
 
@@ -72,26 +71,26 @@ void board_update_buffer() { board.should_update_buffer = true; }
 
 void board_draw_update() {
   if (board.should_update_buffer) {
-    board.draw_buffer.point.size = 0;
-    board.draw_buffer.circle.size = 0;
-    board.draw_buffer.line.size = 0;
+    board.draw_queue.point.size = 0;
+    board.draw_queue.circle.size = 0;
+    board.draw_queue.line.size = 0;
     object_traverse(get_draw_buffer);
     board.should_update_buffer = false;
   }
 
-  for (GeomId i = 0; i < board.draw_buffer.circle.size; i++) {
-    const DrawBuffer buff = board.draw_buffer.circle.elems[i];
+  for (GeomId i = 0; i < board.draw_queue.circle.size; i++) {
+    const DrawBuffer buff = board.draw_queue.circle.elems[i];
     rl_draw_circle_lines_v(buff.data.cr.center, buff.data.cr.radius,
                            buff.color);
   }
 
-  for (GeomId i = 0; i < board.draw_buffer.line.size; i++) {
-    const DrawBuffer buff = board.draw_buffer.line.elems[i];
+  for (GeomId i = 0; i < board.draw_queue.line.size; i++) {
+    const DrawBuffer buff = board.draw_queue.line.elems[i];
     rl_draw_line_v(buff.data.ln.pt1, buff.data.ln.pt2, buff.color);
   }
 
-  for (GeomId i = 0; i < board.draw_buffer.point.size; i++) {
-    const DrawBuffer buff = board.draw_buffer.point.elems[i];
+  for (GeomId i = 0; i < board.draw_queue.point.size; i++) {
+    const DrawBuffer buff = board.draw_queue.point.elems[i];
     rl_draw_circle_v(buff.data.pt, 2, buff.color);
   }
 }
@@ -135,9 +134,9 @@ static void get_draw_buffer(const GeomObject *obj) {
     const float x = graph_get_value(args[0]);
     const float y = graph_get_value(args[1]);
     buff.data.pt = transform_point(x, y);
-    buff.color = obj->color == -1 ? board.default_config.color.point
+    buff.color = obj->color == -1 ? board.default_color.point
                                   : to_raylib_color(obj->color);
-    draw_queue_push(&board.draw_buffer.point, buff);
+    draw_queue_push(&board.draw_queue.point, buff);
     break;
   }
   case CIRCLE: {
@@ -145,9 +144,9 @@ static void get_draw_buffer(const GeomObject *obj) {
     const float cy = graph_get_value(args[1]);
     buff.data.cr.center = transform_point(cx, cy);
     buff.data.cr.radius = graph_get_value(args[2]) * board.xform_scale;
-    buff.color = obj->color == -1 ? board.default_config.color.circle
+    buff.color = obj->color == -1 ? board.default_color.circle
                                   : to_raylib_color(obj->color);
-    draw_queue_push(&board.draw_buffer.circle, buff);
+    draw_queue_push(&board.draw_queue.circle, buff);
     break;
   }
   default: {
@@ -158,9 +157,9 @@ static void get_draw_buffer(const GeomObject *obj) {
     const float t2 = graph_get_value(args[4]);
     buff.data.ln.pt1 = transform_point(nx * dd + ny * t1, ny * dd - nx * t1);
     buff.data.ln.pt2 = transform_point(nx * dd + ny * t2, ny * dd - nx * t2);
-    buff.color = obj->color == -1 ? board.default_config.color.line
+    buff.color = obj->color == -1 ? board.default_color.line
                                   : to_raylib_color(obj->color);
-    draw_queue_push(&board.draw_buffer.line, buff);
+    draw_queue_push(&board.draw_queue.line, buff);
   }
   }
 }

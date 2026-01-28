@@ -25,14 +25,14 @@ int cmd_parallel(const int argc, const char **argv) {
   if (remaining < 0) return MSG_ERROR;
 
   int32_t color;
-  propagate_error(check_name(name));
+  propagate_error(check_new_name(name));
   propagate_error(parse_color(color_str, &color));
 
   if (remaining < 2) throw_error("parallel <line> <point>");
 
   GeomId inputs[5]; // nx, ny, px, py
-  propagate_error(object_get_args(LINE, argv[0], inputs));
-  propagate_error(object_get_args(POINT, argv[1], inputs + 2));
+  if (!object_get_args(LINE, argv[0], inputs)) return MSG_ERROR;
+  if (!object_get_args(POINT, argv[1], inputs + 2)) return MSG_ERROR;
 
   GeomId args[5];
   args[0] = graph_add_value(0);

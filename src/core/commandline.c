@@ -1,7 +1,19 @@
 #include "commandline.h"
-#include "command.h"
 #include "message.h"
 #include "str_hash.h"
+
+int cmd_point(int, const char **);
+int cmd_line(int, const char **);
+int cmd_circle(int, const char **);
+int cmd_midpoint(int, const char **);
+int cmd_perp(int, const char **);
+int cmd_parallel(int, const char **);
+int cmd_bisector(int, const char **);
+int cmd_circum(int, const char **);
+int cmd_isect(int, const char **);
+int cmd_delete(int, const char **);
+int cmd_move_pt(int, const char **);
+int cmd_load_src(int, const char **);
 
 #define ARGV_SIZE 24
 
@@ -16,7 +28,8 @@ CommandMapEntry cmd_map[] = {
     {"point", cmd_point},       {"line", cmd_line},
     {"circle", cmd_circle},     {"midpoint", cmd_midpoint},
     {"perp", cmd_perp},         {"parallel", cmd_parallel},
-    {"bisector", cmd_bisector}, {"delete", cmd_delete},
+    {"bisector", cmd_bisector}, {"circum", cmd_circum},
+    {"isect", cmd_isect},       {"delete", cmd_delete},
     {"move-pt", cmd_move_pt},   {"load-src", cmd_load_src}};
 
 const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));

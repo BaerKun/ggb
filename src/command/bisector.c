@@ -38,8 +38,9 @@ static void create_angle_bisector_ccw(const GeomId inputs[6], const char *name,
 int cmd_bisector(const int argc, const char **argv) {
   static char *name, *color_str, *wise;
   static struct argparse parse;
-  static struct argparse_option options[] = {OPT_STRING(0, "wise", &wise),
-                                             OPT_END()};
+  static struct argparse_option options[] = {
+      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
+      OPT_STRING(0, "wise", &wise), OPT_END()};
 
   name = color_str = wise = NULL;
   argparse_init(&parse, options, NULL, 0);
@@ -47,7 +48,7 @@ int cmd_bisector(const int argc, const char **argv) {
   if (remaining < 0) return MSG_ERROR;
 
   int32_t color;
-  propagate_error(check_name(name));
+  propagate_error(check_new_name(name));
   propagate_error(parse_color(color_str, &color));
 
   int mode;
@@ -71,8 +72,8 @@ int cmd_bisector(const int argc, const char **argv) {
   }
 
   GeomId inputs[8]; // nx1, ny1, dd1, nx1, nx2, dd2
-  propagate_error(object_get_args(LINE, argv[0], inputs));
-  propagate_error(object_get_args(LINE, argv[1], inputs + 3));
+  if (!object_get_args(LINE, argv[0], inputs)) return MSG_ERROR;
+  if (!object_get_args(LINE, argv[1], inputs + 3)) return MSG_ERROR;
 
   if (mode & CCW) {
     create_angle_bisector_ccw(inputs, name, color);

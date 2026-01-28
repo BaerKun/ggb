@@ -25,6 +25,7 @@ void console_init(const float x, const float y, const float width,
   console.font = rl_get_font_default();
   commandline_init();
 }
+
 void console_cleanup() { commandline_cleanup(); }
 
 void console_listen() {
@@ -37,11 +38,10 @@ void console_listen() {
     console.commandline[--console.cursor_pos] = 0;
   }
   if (rl_is_key_pressed(KEY_ENTER)) {
-    commandline_parse(console.commandline);
+    if (!commandline_parse(console.commandline)) board_update_buffer();
     memset(console.commandline, 0, console.cursor_pos);
     console.cursor_pos = 0;
     console.feedback.enable = false;
-    board_update_buffer();
   }
 }
 
@@ -53,7 +53,7 @@ void console_draw() {
 
   const Message *msg = message_pop();
   if (msg) {
-    const int PREFIX_LEN = 8;
+    static const int PREFIX_LEN = 8;
     console.feedback.enable = true;
     switch (msg->level) {
     case MSG_ERROR:

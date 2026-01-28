@@ -24,14 +24,14 @@ int cmd_circle(const int argc, const char **argv) {
 
   int32_t color;
   propagate_error(parse_color(color_str, &color));
-  propagate_error(check_name(name));
+  propagate_error(check_new_name(name));
 
   if (remaining < 2) {
     throw_error("circle <center> <radius:number / point:on circle>");
   }
 
   GeomId center[2];
-  propagate_error(object_get_args(POINT, argv[0], center));
+  if (!object_get_args(POINT, argv[0], center)) return MSG_ERROR;
 
   GeomId radius;
   const char *str = argv[1];

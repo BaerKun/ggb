@@ -47,14 +47,14 @@ int cmd_perp(const int argc, const char **argv) {
   if (remaining < 0) return MSG_ERROR;
 
   int32_t color;
-  propagate_error(check_name(name));
+  propagate_error(check_new_name(name));
   propagate_error(parse_color(color_str, &color));
 
   if (remaining == 0) throw_error("perp <line> <point> [--seg]");
 
   GeomId line_args[5], point_args[2];
-  propagate_error(object_get_args(LINE, argv[0], line_args));
-  propagate_error(object_get_args(POINT, argv[1], point_args));
+  if (!object_get_args(LINE, argv[0], line_args)) return MSG_ERROR;
+  if (!object_get_args(POINT, argv[1], point_args)) return MSG_ERROR;
 
   const GeomId perp_inputs[] = {line_args[0], line_args[1], point_args[0],
                                 point_args[1]};

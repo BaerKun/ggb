@@ -11,6 +11,8 @@ static void line_from_2points(const float xyxy[4], float *line[3]) {
   const float dx = x2 - x1;
   const float dy = y2 - y1;
   const float dist = sqrtf(dx * dx + dy * dy);
+  if (dist < EPS) return;
+
   const float nx = -dy / dist;
   const float ny = dx / dist;
   *line[0] = nx;
@@ -41,13 +43,13 @@ int cmd_line(const int argc, const char **argv) {
 
   int32_t color;
   propagate_error(parse_color(color_str, &color));
-  propagate_error(check_name(name));
+  propagate_error(check_new_name(name));
 
   if (remaining < 2) throw_error("line <point> <point> [--seg]");
 
   GeomId xyxy[4];
-  propagate_error(object_get_args(POINT, argv[0], xyxy));
-  propagate_error(object_get_args(POINT, argv[1], xyxy + 2));
+  if (!object_get_args(POINT, argv[0], xyxy)) return MSG_ERROR;
+  if (!object_get_args(POINT, argv[1], xyxy + 2)) return MSG_ERROR;
 
   const GeomId nx = graph_add_value(0);
   const GeomId ny = graph_add_value(0);

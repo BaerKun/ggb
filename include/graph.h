@@ -4,6 +4,7 @@
 #include "types.h"
 
 #define HUGE_VALUE 4096.f
+#define EPS 1e-6f
 
 typedef void (*ValueEval)(const float *inputs, float **outputs);
 
@@ -16,7 +17,7 @@ void graph_add_constraint(GeomSize input_size, const GeomId *inputs,
                           ValueEval eval);
 float graph_get_value(GeomId id);
 void graph_ref_value(GeomId id);
-void graph_unref_value(GeomId id);
+void graph_unref_value(GeomSize count, const GeomId *ids);
 void graph_change_value(GeomSize count, const GeomId *ids, const float *values);
 
 #endif // GGB_GRAPH_H

@@ -1,9 +1,30 @@
 #include "message.h"
 #include "object.h"
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define MAX_POINT_COUNT 10
+
+static int get_xy(const char *str, float xy[2]) {
+  static const char error_fmt[] =
+      "'%s' isn't a valid coordinate. must be '(%%f,%%f)'";
+  if (*str == '(') {
+    char *end;
+    const char *start = str + 1;
+    xy[0] = strtof(start, &end);
+    if (end == start || *end != ',') throw_error_fmt(error_fmt, str);
+    start = end;
+    xy[0] = strtof(start, &end);
+    if (end == start || *end != ')' || end[1]) throw_error_fmt(error_fmt, str);
+    return 0;
+  }
+
+  GeomId ids[2];
+  if (!object_get_args(POINT, str, ids)) return MSG_ERROR;
+  xy[0] = graph_get_value(ids[0]);
+  xy[1] = graph_get_value(ids[1]);
+  return 0;
+}
 
 int cmd_move_pt(int argc, const char **argv) {
   static const char help[] = "move-pt <from...> to <to...>";
@@ -23,15 +44,12 @@ int cmd_move_pt(int argc, const char **argv) {
   if (count != argc - count - 1) throw_error("from and to count not equal.");
 
   for (GeomSize i = 0; i < count; i++) {
-    propagate_error(object_get_args(POINT, argv[i], src + i * 2));
+    if (!object_get_args(POINT, argv[i], src + i * 2)) return MSG_ERROR;
   }
 
   const char **arg_dst = argv + count + 1;
   for (int i = 0; i < count; i++) {
-    const char *str = arg_dst[i];
-    if (sscanf(str, "%f,%f", dst + i * 2, dst + i * 2 + 1) != 2) {
-      throw_error_fmt("'%s' isn't a valid coordinate. must be '%%f,%%f'", str);
-    }
+    propagate_error(get_xy(arg_dst[i], dst + i * 2));
   }
 
   graph_change_value(count * 2, src, dst);

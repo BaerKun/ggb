@@ -14,18 +14,19 @@ static void parallel_eval(const float inputs[4], float *outputs[3]) {
 
 int cmd_parallel(const int argc, const char **argv) {
   static char *name, *color_str;
+  static int group;
   static struct argparse parse;
   static struct argparse_option options[] = {
       OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
-      OPT_END()};
+      OPT_INTEGER('g', "group", &group), OPT_END()};
 
-  name = color_str = NULL;
+  name = color_str = NULL, group = 0;
   argparse_init(&parse, options, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
   int32_t color;
-  propagate_error(check_new_name(name));
+  propagate_error(parse_new_name(name, 1, &name));
   propagate_error(parse_color(color_str, &color));
 
   if (remaining < 2) throw_error("parallel <line> <point>");
@@ -41,6 +42,6 @@ int cmd_parallel(const int argc, const char **argv) {
   args[3] = graph_add_value(-HUGE_VALUE);
   args[4] = graph_add_value(HUGE_VALUE);
   graph_add_constraint(4, inputs, 3, args, parallel_eval);
-  object_create(LINE, args, name, color);
+  object_create(LINE, args, name, group, color);
   return 0;
 }

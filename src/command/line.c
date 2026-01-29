@@ -30,20 +30,22 @@ static void clip_end_point(const float inputs[4], float *t[1]) {
 
 int cmd_line(const int argc, const char **argv) {
   static char *name, *color_str;
-  static int ray, seg;
+  static int group, ray, seg;
   static struct argparse parse;
   static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
-      OPT_BOOLEAN(0, "ray", &ray), OPT_BOOLEAN(0, "seg", &seg), OPT_END()};
+      OPT_STRING('n', "name", &name),    OPT_STRING('c', "color", &color_str),
+      OPT_INTEGER('g', "group", &group), OPT_BOOLEAN(0, "ray", &ray),
+      OPT_BOOLEAN(0, "seg", &seg),       OPT_END()};
 
-  name = color_str = NULL, ray = seg = 0;
+  name = color_str = NULL, group = ray = seg = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
   int32_t color;
+  propagate_error(parse_new_name(name, 1, &name));
   propagate_error(parse_color(color_str, &color));
-  propagate_error(check_new_name(name));
+  propagate_error(check_group(group));
 
   if (remaining < 2) throw_error("line <point> <point> [--seg]");
 
@@ -66,6 +68,6 @@ int cmd_line(const int argc, const char **argv) {
     const GeomId inputs[] = {nx, ny, xyxy[2], xyxy[3]};
     graph_add_constraint(4, inputs, 1, &t2, clip_end_point);
   }
-  object_create(LINE, args, name, color);
+  object_create(LINE, args, name, group, color);
   return 0;
 }

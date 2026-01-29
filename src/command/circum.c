@@ -26,33 +26,38 @@ static void circumcircle_eval(const float inputs[6], float *outputs[3]) {
 }
 
 int cmd_circum(const int argc, const char **argv) {
-  static char *name, *color_str;
+  static char *name_str, *color_str;
+  static int center, group;
   static struct argparse parse;
   static struct argparse_option options[] = {
-      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
+      OPT_STRING('n', "name", &name_str), OPT_STRING('c', "color", &color_str),
+      OPT_INTEGER('g', "group", &group), OPT_BOOLEAN(0, "center", &center),
       OPT_END()};
 
-  name = color_str = NULL;
+  name_str = color_str = NULL, group = 0;
   argparse_init(&parse, options, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
+  char *names[2];
   int32_t color;
-  propagate_error(check_new_name(name));
+  propagate_error(parse_new_name(name_str, 2, names));
   propagate_error(parse_color(color_str, &color));
+  propagate_error(check_group(group));
 
   if (remaining < 3) throw_error("circum <point> <point> <point>");
 
   GeomId inputs[6];
-  if(!object_get_args(POINT, argv[0], inputs)) return MSG_ERROR;
-  if(!object_get_args(POINT, argv[1], inputs + 2)) return MSG_ERROR;
-  if(!object_get_args(POINT, argv[2], inputs + 4)) return MSG_ERROR;
+  if (!object_get_args(POINT, argv[0], inputs)) return MSG_ERROR;
+  if (!object_get_args(POINT, argv[1], inputs + 2)) return MSG_ERROR;
+  if (!object_get_args(POINT, argv[2], inputs + 4)) return MSG_ERROR;
 
   GeomId args[3];
   args[0] = graph_add_value(0);
   args[1] = graph_add_value(0);
   args[2] = graph_add_value(0);
   graph_add_constraint(6, inputs, 3, args, circumcircle_eval);
-  object_create(CIRCLE, args, name, color);
+  object_create(CIRCLE, args, names[0], group, color);
+  if (center) object_create(POINT, args, names[1], group, color);
   return 0;
 }

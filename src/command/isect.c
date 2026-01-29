@@ -22,7 +22,7 @@ static void isect_line_circle(const float inputs[6], float *outputs[4]) {
   const float dd = inputs[2];
   const float cx = inputs[3];
   const float cy = inputs[4];
-  const float r  = inputs[5];
+  const float r = inputs[5];
   const float cross = nx * cy - ny * cx;
   const float tmp = nx * cx + ny * cy - dd;
   const float B = 2 * cross;
@@ -62,20 +62,23 @@ static void isect_circle_circle(const float inputs[6], float *outputs[4]) {
 }
 
 int cmd_isect(const int argc, const char **argv) {
-  static char *name, *color_str;
+  static char *name_str, *color_str;
+  static int group;
   static struct argparse parse;
-  static struct argparse_option opt[] = {OPT_STRING('n', "name", &name),
-                                         OPT_STRING('c', "color", &color_str),
-                                         OPT_END()};
+  static struct argparse_option opt[] = {
+      OPT_STRING('n', "name", &name_str), OPT_STRING('c', "color", &color_str),
+      OPT_INTEGER('g', "group", &group), OPT_END()};
 
-  name = color_str = NULL;
+  name_str = color_str = NULL, group = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
+  char *names[2];
   int32_t color;
+  propagate_error(parse_new_name(name_str, 2, names));
   propagate_error(parse_color(color_str, &color));
-  propagate_error(check_new_name(name));
+  propagate_error(check_group(group));
 
   if (remaining < 2) throw_error("isect <line/circle> <line/circle>");
 
@@ -91,11 +94,9 @@ int cmd_isect(const int argc, const char **argv) {
 
   if (type1 == LINE && type2 == LINE) {
     graph_add_constraint(6, inputs, 2, outputs, isect_line_line);
-    object_create(POINT, outputs, name, color);
+    object_create(POINT, outputs, names[0], group, color);
     return 0;
   }
-
-  message_push_back(MSG_WARN, "2 intersections will use the default name.");
 
   outputs[2] = graph_add_value(0);
   outputs[3] = graph_add_value(0);
@@ -108,7 +109,7 @@ int cmd_isect(const int argc, const char **argv) {
                                    inputs[0], inputs[1], inputs[2]};
     graph_add_constraint(6, swap_inputs, 4, outputs, isect_line_circle);
   }
-  object_create(POINT, outputs, NULL, color);
-  object_create(POINT, outputs + 2, NULL, color);
+  object_create(POINT, outputs, names[0], group, color);
+  object_create(POINT, outputs + 2, names[1], group, color);
   return 0;
 }

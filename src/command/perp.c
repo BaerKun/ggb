@@ -34,21 +34,24 @@ static void equal(const float input[1], float *output[1]) {
 }
 
 int cmd_perp(const int argc, const char **argv) {
-  static char *name, *color_str;
-  static int seg, foot;
+  static char *name_str, *color_str;
+  static int group, seg, foot;
   static struct argparse parse;
   static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
-      OPT_BOOLEAN(0, "seg", &seg), OPT_BOOLEAN(0, "foot", &foot), OPT_END()};
+      OPT_STRING('n', "name", &name_str), OPT_STRING('c', "color", &color_str),
+      OPT_INTEGER('g', "group", &group),  OPT_BOOLEAN(0, "seg", &seg),
+      OPT_BOOLEAN(0, "foot", &foot),      OPT_END()};
 
-  name = color_str = NULL, seg = foot = 0;
+  name_str = color_str = NULL, group = seg = foot = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
+  char *names[2];
   int32_t color;
-  propagate_error(check_new_name(name));
+  propagate_error(parse_new_name(name_str, 2, names));
   propagate_error(parse_color(color_str, &color));
+  propagate_error(check_group(group));
 
   if (remaining == 0) throw_error("perp <line> <point> [--seg]");
 
@@ -65,7 +68,7 @@ int cmd_perp(const int argc, const char **argv) {
   perp_args[3] = graph_add_value(-HUGE_VALUE);
   perp_args[4] = graph_add_value(HUGE_VALUE);
   graph_add_constraint(4, perp_inputs, 3, perp_args, perp_eval);
-  object_create(LINE, perp_args, name, color);
+  object_create(LINE, perp_args, names[0], group, color);
 
   if (foot) {
     GeomId foot_args[2];
@@ -74,7 +77,7 @@ int cmd_perp(const int argc, const char **argv) {
     const GeomId foot_inputs[4] = {perp_args[0], perp_args[1], perp_args[2],
                                    line_args[2]};
     graph_add_constraint(4, foot_inputs, 2, foot_args, perp_foot_eval);
-    object_create(POINT, foot_args, NULL, -1);
+    object_create(POINT, foot_args, names[1], group, -1);
   }
 
   if (seg) {

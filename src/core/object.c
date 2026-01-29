@@ -11,38 +11,52 @@ typedef struct {
   GeomObject *data;
 } GeomSparseArray;
 
-typedef struct {
-  StringHashTable hash;
-  GeomSparseArray array;
-} GeomDict;
-
-static GeomDict objects;
 static const GeomSize type_argc[] = {0, 2, 3, 0, 5};
 static const char *type_str[] = {NULL, "point", "circle", NULL, "line"};
+static struct {
+  StringHashTable hash;
+  GeomSparseArray objects;
+  GeomId group_heads[17];
+  GeomId *group_next;
+} internal;
 
 static uint64_t ctz(uint64_t value);
-static void geom_dict_init(GeomDict *, GeomSize);
-static void geom_dict_release(const GeomDict *dict);
-static void geom_dict_clear(GeomDict *dict);
-static GeomObject *geom_dict_insert(GeomDict *dict, const char *key);
+static GeomObject *object_insert(const char *key, GeomId group);
+static void object_module_resize();
 static void object_not_exists(ObjectType type, const char *name);
 static void object_error_type(ObjectType target, ObjectType got,
                               const char *name);
 
 void object_module_init() {
-  geom_dict_init(&objects, 64);
-  computation_graph_init(256);
+  const GeomSize init_size = 64;
+
+  memset(internal.group_heads, -1, sizeof(internal.group_heads));
+  internal.group_next = malloc(init_size * sizeof(GeomId));
+
+  internal.objects.cap = init_size;
+  internal.objects.size = 0;
+  internal.objects.bitmap = calloc(init_size / 8, 1);
+  internal.objects.data = malloc(init_size * sizeof(GeomObject));
+
+  string_hash_init(&internal.hash, init_size);
+  computation_graph_init(init_size * 4);
 }
 
 void object_module_cleanup() {
-  geom_dict_release(&objects);
+  free(internal.group_next);
+  free(internal.objects.bitmap);
+  free(internal.objects.data);
+  string_hash_free(&internal.hash);
   computation_graph_cleanup();
 }
 
 void object_create(const ObjectType type, const GeomId *args, const char *name,
-                   const int32_t color) {
-  GeomObject *obj = geom_dict_insert(&objects, name);
+                   const GeomId group, const int32_t color) {
+  if (internal.objects.size == internal.objects.cap) object_module_resize();
+
+  GeomObject *obj = object_insert(name, group);
   obj->type = type;
+  obj->visible = true;
   obj->color = color;
 
   for (int i = 0; i < type_argc[type]; i++) {
@@ -52,27 +66,37 @@ void object_create(const ObjectType type, const GeomId *args, const char *name,
 }
 
 int object_delete(const char *name) {
-  const GeomId id = string_hash_remove(&objects.hash, name);
+  const GeomId id = string_hash_remove(&internal.hash, name);
   if (id == -1) {
     object_not_exists(ANY, name);
     return MSG_ERROR;
   }
 
-  const GeomObject *obj = objects.array.data + id;
+  GeomSparseArray *objects = &internal.objects;
+  const GeomObject *obj = objects->data + id;
   graph_unref_value(type_argc[obj->type], obj->args);
 
-  objects.array.bitmap[id >> 6] ^= 1llu << (id & 63);
-  objects.array.size--;
+  GeomId *ptr = internal.group_heads + obj->group;
+  for (; *ptr != id; ptr = internal.group_next + *ptr);
+  *ptr = internal.group_next[id];
+
+  objects->bitmap[id >> 6] ^= 1llu << (id & 63);
+  objects->size--;
   return 0;
 }
 
 void object_delete_all() {
-  geom_dict_clear(&objects);
+  internal.objects.size = 0;
+  memset(internal.objects.bitmap, 0, internal.objects.cap / 8);
+
+  memset(internal.group_heads, -1, sizeof(internal.group_heads));
+
+  string_hash_clear(&internal.hash);
   computation_graph_clear();
 }
 
 void object_traverse(void (*callback)(const GeomObject *)) {
-  const GeomSparseArray *array = &objects.array;
+  const GeomSparseArray *array = &internal.objects;
   for (GeomSize i = 0; i < array->cap; i += 64) {
     uint64_t bitmap = array->bitmap[i >> 6];
     while (bitmap) {
@@ -83,14 +107,15 @@ void object_traverse(void (*callback)(const GeomObject *)) {
   }
 }
 
-ObjectType object_get_args(const ObjectType types, const char *name, GeomId *args) {
-  const GeomInt id = string_hash_find(&objects.hash, name);
+ObjectType object_get_args(const ObjectType types, const char *name,
+                           GeomId *args) {
+  const GeomInt id = string_hash_find(&internal.hash, name);
   if (id == -1) {
     object_not_exists(types, name);
     return UNKNOWN;
   }
 
-  const GeomObject *obj = objects.array.data + id;
+  const GeomObject *obj = internal.objects.data + id;
   if (!(obj->type & types)) {
     object_error_type(types, obj->type, name);
     return UNKNOWN;
@@ -100,12 +125,30 @@ ObjectType object_get_args(const ObjectType types, const char *name, GeomId *arg
   return obj->type;
 }
 
-int check_new_name(const char *name) {
-  if (name != NULL) {
+int parse_new_name(char *str, const GeomSize count, char **names) {
+  memset(names, 0, count * sizeof(void *));
+  if (str == NULL) return 0;
+
+  for (GeomSize i = 0; i < count; i++) {
+    if (*str == 0) break;
+    names[i] = str;
+    while (*str && *str != ',') str++;
+    if (*str) *str++ = 0;
+  }
+
+  if (*str) {
+    message_push_back(MSG_WARN, "only need %u names.", count);
+  }
+
+  for (GeomSize i = 0; i < count; i++) {
+    const char *name = names[i];
+    if (name == NULL) continue;
+
     if (strlen(name) > 7) {
       throw_error_fmt("name '%s' is too long. ( <= %d )", name, 7);
     }
-    if (string_hash_find(&objects.hash, name) != -1) {
+
+    if (string_hash_find(&internal.hash, name) != -1) {
       throw_error_fmt("name '%s' already exists.", name);
     }
   }
@@ -128,6 +171,13 @@ int parse_color(const char *str, int32_t *color) {
   throw_error_fmt("color should be a hex-number like 'RRGGBB'. got '%s'.", str);
 }
 
+int check_group(const GeomId group) {
+  if (group < 0 || group > 15) {
+    throw_error("group should between [0, 15].");
+  }
+  return 0;
+}
+
 static inline uint64_t ctz(const uint64_t value) {
 #if defined(__GNUC__) || defined(__clang__)
   const uint64_t res = __builtin_ctzll(value);
@@ -138,62 +188,45 @@ static inline uint64_t ctz(const uint64_t value) {
   return res;
 }
 
-static void geom_dict_init(GeomDict *dict, const GeomSize init_size) {
-  string_hash_init(&dict->hash, init_size);
-  dict->array.cap = init_size;
-  dict->array.size = 0;
-  dict->array.bitmap = calloc(init_size / 8, 1);
-  dict->array.data = malloc(init_size * sizeof(GeomObject));
-}
-
-static void geom_dict_release(const GeomDict *dict) {
-  free(dict->array.bitmap);
-  free(dict->array.data);
-  string_hash_free(&dict->hash);
-}
-
-static void geom_dict_clear(GeomDict *dict) {
-  GeomSparseArray *array = &dict->array;
-  array->size = 0;
-  memset(array->bitmap, 0, array->cap / 8);
-  string_hash_clear(&dict->hash);
-}
-
 static void get_default_name(char *name) {
   static unsigned int id = 1;
   sprintf(name, "#%05u", id++);
 }
 
-static void geom_dict_resize(GeomDict *dict) {
-  GeomSparseArray *array = &dict->array;
-  const GeomSize half_cap = array->cap;
-  array->cap *= 2;
-  string_hash_resize(&dict->hash, array->cap);
+static GeomObject *object_insert(const char *key, const GeomId group) {
+  const GeomId id = string_hash_alloc_id(&internal.hash);
+  GeomObject *obj = internal.objects.data + id;
+  key ? memcpy(obj->name, key, sizeof(obj->name)) : get_default_name(obj->name);
 
-  void *mem = realloc(array->bitmap, array->cap / 8);
-  if (!mem) abort();
-  array->bitmap = mem;
-  memset((char *)array->bitmap + half_cap / 8, 0, half_cap / 8);
+  string_hash_insert(&internal.hash, obj->name, id);
+  internal.objects.bitmap[id >> 6] |= 1llu << (id & 63);
+  internal.objects.size++;
 
-  mem = realloc(array->data, array->cap * sizeof(GeomObject));
-  if (!mem) abort();
-  dict->array.data = mem;
+  obj->group = group;
+  internal.group_next[id] = internal.group_heads[group];
+  internal.group_heads[group] = id;
+  return obj;
 }
 
-static GeomObject *geom_dict_insert(GeomDict *dict, const char *key) {
-  if (dict->array.size == dict->array.cap) geom_dict_resize(dict);
-  const GeomId id = string_hash_alloc_id(&dict->hash);
-  GeomObject *obj = dict->array.data + id;
-  if (key == NULL) {
-    get_default_name(obj->name);
-  } else {
-    memcpy(obj->name, key, sizeof(obj->name));
-  }
+static void object_module_resize() {
+  GeomSparseArray *objects = &internal.objects;
+  const GeomSize half_cap = objects->cap;
 
-  string_hash_insert(&dict->hash, obj->name, id);
-  dict->array.bitmap[id >> 6] |= 1llu << (id & 63);
-  dict->array.size++;
-  return obj;
+  objects->cap *= 2;
+  string_hash_resize(&internal.hash, objects->cap);
+
+  void *mem = realloc(objects->bitmap, objects->cap / 8);
+  if (!mem) abort();
+  objects->bitmap = mem;
+  memset((char *)objects->bitmap + half_cap / 8, 0, half_cap / 8);
+
+  mem = realloc(objects->data, objects->cap * sizeof(GeomObject));
+  if (!mem) abort();
+  objects->data = mem;
+
+  mem = realloc(internal.group_next, 1);
+  if (!mem) abort();
+  internal.group_next = mem;
 }
 
 static void object_not_exists(const ObjectType type, const char *name) {

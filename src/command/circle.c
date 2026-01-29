@@ -12,19 +12,21 @@ static void radius_from_point(const float xyxy[4], float *radius[1]) {
 
 int cmd_circle(const int argc, const char **argv) {
   static char *name, *color_str;
+  static int group;
   static struct argparse parse;
-  static struct argparse_option opt[] = {OPT_STRING('n', "name", &name),
-                                         OPT_STRING('c', "color", &color_str),
-                                         OPT_END()};
+  static struct argparse_option opt[] = {
+      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
+      OPT_INTEGER('g', "group", &group), OPT_END()};
 
-  name = color_str = NULL;
+  name = color_str = NULL, group = 0;
   argparse_init(&parse, opt, NULL, 0);
   const int remaining = argparse_parse(&parse, argc, argv);
   if (remaining < 0) return MSG_ERROR;
 
   int32_t color;
+  propagate_error(parse_new_name(name, 1, &name));
   propagate_error(parse_color(color_str, &color));
-  propagate_error(check_new_name(name));
+  propagate_error(check_group(group));
 
   if (remaining < 2) {
     throw_error("circle <center> <radius:number / point:on circle>");
@@ -42,12 +44,12 @@ int cmd_circle(const int argc, const char **argv) {
     radius = graph_add_value(value);
   } else {
     GeomId inputs[4] = {center[0], center[1]};
-    propagate_error(object_get_args(POINT, str, inputs + 2));
+    if(!object_get_args(POINT, str, inputs + 2)) return MSG_ERROR;
     radius = graph_add_value(0);
     graph_add_constraint(4, inputs, 1, &radius, radius_from_point);
   }
 
   const GeomId args[] = {center[0], center[1], radius};
-  object_create(CIRCLE, args, name, color);
+  object_create(CIRCLE, args, name, group, color);
   return 0;
 }

@@ -24,7 +24,8 @@ typedef struct {
   CommandFunction func;
 } CommandMapEntry;
 
-CommandMapEntry cmd_map[] = {
+static StringHashTable cmd_hash;
+static const CommandMapEntry cmd_map[] = {
     {"point", cmd_point},       {"line", cmd_line},
     {"circle", cmd_circle},     {"midpoint", cmd_midpoint},
     {"perp", cmd_perp},         {"parallel", cmd_parallel},
@@ -33,7 +34,6 @@ CommandMapEntry cmd_map[] = {
     {"move-pt", cmd_move_pt},   {"load-src", cmd_load_src}};
 
 const int CMD_NUM = (sizeof(cmd_map) / sizeof(CommandMapEntry));
-static StringHashTable cmd_hash;
 
 void commandline_init() {
   string_hash_init(&cmd_hash, CMD_NUM);

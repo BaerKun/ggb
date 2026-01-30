@@ -21,7 +21,8 @@ static struct {
 } internal;
 
 static uint64_t ctz(uint64_t value);
-static GeomObject *object_insert(const char *key, GeomId group);
+static GeomObject *object_insert(const char *name, GeomId group);
+static GeomObject *object_remove(const char *name);
 static void object_module_resize();
 static void object_not_exists(ObjectType type, const char *name);
 static void object_error_type(ObjectType target, ObjectType got,
@@ -30,22 +31,22 @@ static void object_error_type(ObjectType target, ObjectType got,
 void object_module_init() {
   const GeomSize init_size = 64;
 
-  memset(internal.group_heads, -1, sizeof(internal.group_heads));
-  internal.group_next = malloc(init_size * sizeof(GeomId));
-
   internal.objects.cap = init_size;
   internal.objects.size = 0;
   internal.objects.bitmap = calloc(init_size / 8, 1);
   internal.objects.data = malloc(init_size * sizeof(GeomObject));
+
+  internal.group_next = malloc(init_size * sizeof(GeomId));
+  memset(internal.group_heads, -1, sizeof(internal.group_heads));
 
   string_hash_init(&internal.hash, init_size);
   computation_graph_init(init_size * 4);
 }
 
 void object_module_cleanup() {
-  free(internal.group_next);
   free(internal.objects.bitmap);
   free(internal.objects.data);
+  free(internal.group_next);
   string_hash_free(&internal.hash);
   computation_graph_cleanup();
 }
@@ -66,31 +67,20 @@ void object_create(const ObjectType type, const GeomId *args, const char *name,
 }
 
 int object_delete(const char *name) {
-  const GeomId id = string_hash_remove(&internal.hash, name);
-  if (id == -1) {
+  const GeomObject *obj = object_remove(name);
+  if (obj == NULL) {
     object_not_exists(ANY, name);
     return MSG_ERROR;
   }
 
-  GeomSparseArray *objects = &internal.objects;
-  const GeomObject *obj = objects->data + id;
   graph_unref_value(type_argc[obj->type], obj->args);
-
-  GeomId *ptr = internal.group_heads + obj->group;
-  for (; *ptr != id; ptr = internal.group_next + *ptr);
-  *ptr = internal.group_next[id];
-
-  objects->bitmap[id >> 6] ^= 1llu << (id & 63);
-  objects->size--;
   return 0;
 }
 
 void object_delete_all() {
   internal.objects.size = 0;
   memset(internal.objects.bitmap, 0, internal.objects.cap / 8);
-
   memset(internal.group_heads, -1, sizeof(internal.group_heads));
-
   string_hash_clear(&internal.hash);
   computation_graph_clear();
 }
@@ -193,10 +183,11 @@ static void get_default_name(char *name) {
   sprintf(name, "#%05u", id++);
 }
 
-static GeomObject *object_insert(const char *key, const GeomId group) {
+static GeomObject *object_insert(const char *name, const GeomId group) {
   const GeomId id = string_hash_alloc_id(&internal.hash);
   GeomObject *obj = internal.objects.data + id;
-  key ? memcpy(obj->name, key, sizeof(obj->name)) : get_default_name(obj->name);
+  name ? memcpy(obj->name, name, sizeof(obj->name))
+       : get_default_name(obj->name);
 
   string_hash_insert(&internal.hash, obj->name, id);
   internal.objects.bitmap[id >> 6] |= 1llu << (id & 63);
@@ -205,6 +196,20 @@ static GeomObject *object_insert(const char *key, const GeomId group) {
   obj->group = group;
   internal.group_next[id] = internal.group_heads[group];
   internal.group_heads[group] = id;
+  return obj;
+}
+
+static GeomObject *object_remove(const char *name) {
+  const GeomId id = string_hash_remove(&internal.hash, name);
+  if (id == -1) return NULL;
+
+  GeomObject *obj = internal.objects.data + id;
+  GeomId *ptr = internal.group_heads + obj->group;
+  for (; *ptr != id; ptr = internal.group_next + *ptr);
+  *ptr = internal.group_next[id];
+
+  internal.objects.bitmap[id >> 6] ^= 1llu << (id & 63);
+  internal.objects.size--;
   return obj;
 }
 
@@ -224,7 +229,7 @@ static void object_module_resize() {
   if (!mem) abort();
   objects->data = mem;
 
-  mem = realloc(internal.group_next, 1);
+  mem = realloc(internal.group_next, objects->cap * sizeof(GeomId));
   if (!mem) abort();
   internal.group_next = mem;
 }
@@ -233,12 +238,12 @@ static void object_not_exists(const ObjectType type, const char *name) {
   if (type == ANY) {
     push_error_fmt("object '%s' doesn't exist.", name);
   } else {
-    push_error_fmt("%s '%s' doesn't exist.", type_str[ctz(type)], name);
+    push_error_fmt("%s '%s' doesn't exist.", type_str[type], name);
   }
 }
 
 static void object_error_type(const ObjectType target, const ObjectType got,
                               const char *name) {
-  push_error_fmt("'%s' is a %s, but need %s", name, type_str[ctz(got)],
-                 type_str[ctz(target)]);
+  push_error_fmt("'%s' is a %s, but need %s", name, type_str[got],
+                 type_str[target]);
 }

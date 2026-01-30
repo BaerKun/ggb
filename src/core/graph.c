@@ -43,9 +43,9 @@ void computation_graph_init(const GeomSize init_size) {
   internal.nodes = malloc(init_size * sizeof(GraphNode));
   internal.dep_next = malloc(init_size * sizeof(GeomId));
   internal.queue.elems = malloc(init_size * sizeof(GeomId));
+  memset(internal.dep_next, -1, init_size * sizeof(GeomId));
 
   cgraphInit(&internal.graph, true, init_size, init_size);
-  memset(internal.dep_next, -1, init_size * sizeof(GeomId));
   cgraphSetVertResizeCallback(&internal.graph, graph_vert_resize_callback);
   cgraphSetEdgeResizeCallback(&internal.graph, graph_edge_resize_callback);
 }
@@ -92,7 +92,7 @@ void graph_add_constraint(const GeomSize input_size, const GeomId *inputs,
     return graph_combine(outputs[0], input_size, inputs, eval);
   }
 
-  const CGraphId node_id = cgraphAddVert(&internal.graph);
+  const GeomId node_id = cgraphAddVert(&internal.graph);
   GraphNode *node = internal.nodes + node_id;
   node->type = NODE_COMPUTE;
   node->ref_count = (GeomInt)output_size;

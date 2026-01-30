@@ -6,9 +6,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef int64_t GeomInt;
-typedef int64_t GeomId;
-typedef size_t GeomSize;
+typedef int32_t GeomInt;
+typedef int32_t GeomId;
+typedef uint32_t GeomSize;
 
-// clang-format on
 #endif //GGB_TYPES_H

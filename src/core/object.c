@@ -16,7 +16,7 @@ static const char *type_str[] = {NULL, "point", "circle", NULL, "line"};
 static struct {
   StringHashTable hash;
   GeomSparseArray objects;
-  GeomId group_heads[17];
+  GeomId group_heads[16];
   GeomId *group_next;
 } internal;
 

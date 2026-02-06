@@ -14,8 +14,10 @@ typedef struct {
 static struct {
   Rectangle window;
   Font font;
-  int cursor_pos;
+
+  size_t cursor_pos;
   char commandline[CLI_BUF_SIZE];
+
   Feedback feedback;
 } console;
 
@@ -78,4 +80,15 @@ void console_draw() {
                     (Vector2){console.window.x + 5, console.window.y + 40}, 20,
                     1, console.feedback.color);
   }
+}
+
+void console_push_text(const char *text, const bool select) {
+  if (select) {
+    while (console.cursor_pos && console.commandline[console.cursor_pos - 1] != ' ') {
+      console.commandline[--console.cursor_pos] = '\0';
+    }
+  }
+  const size_t len = strlen(text);
+  memcpy(console.commandline + console.cursor_pos, text, len);
+  console.cursor_pos += len;
 }

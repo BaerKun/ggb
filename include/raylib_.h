@@ -1053,6 +1053,11 @@ bool rl_is_key_pressed(int key);
 int rl_get_char_pressed();
 void rl_set_exit_key(int key);
 
+bool rl_is_mouse_button_pressed(int button);
+bool rl_is_mouse_button_released(int button);
+Vector2 rl_get_mouse_position();
+Vector2 rl_get_mouse_delta();
+
 void rl_draw_line_v(Vector2 start, Vector2 end, Color color);
 void rl_draw_line_ex(Vector2 start, Vector2 end, float thick, Color color);
 void rl_draw_circle_v(Vector2 center, float radius, Color color);
@@ -1061,6 +1066,9 @@ void rl_draw_rectangle(int x, int y, int width, int height, Color color);
 void rl_draw_rectangle_v(Vector2 pos, Vector2 size, Color color);
 void rl_draw_rectangle_rec(Rectangle rec, Color color);
 
+bool rl_check_collision_point_rec(Vector2 point, Rectangle rec);
+bool rl_check_collision_point_circle(Vector2 point, Vector2 center, float radius);
+bool rl_check_collision_point_line(Vector2 point, Vector2 p1, Vector2 p2, int threshold);
 
 Font rl_get_font_default();
 void rl_draw_text(const char *text, int x, int y, int size, Color color);

@@ -141,8 +141,9 @@ void graph_unref_value(const GeomSize count, const GeomId *ids) {
 
 void graph_change_value(const GeomSize count, const GeomId *ids,
                         const float *values) {
-  queue_clear(&internal.queue);
+  if (count == 0) return;
 
+  queue_clear(&internal.queue);
   for (GeomSize i = 0; i < count; i++) {
     enqueue(&internal.queue, ids[i]);
     internal.nodes[ids[i]].value = values[i];

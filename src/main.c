@@ -12,10 +12,12 @@ int main() {
   console_init(0, 500, 800, 100);
 
   while (!rl_window_should_close()) {
+    board_listen();
     console_listen();
+
     rl_begin_drawing();
     rl_clear_background(WHITE);
-    board_draw_update();
+    board_draw();
     console_draw();
     rl_end_drawing();
   }

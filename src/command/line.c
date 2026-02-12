@@ -1,5 +1,4 @@
-#include "argparse.h"
-#include "message.h"
+#include "command.h"
 #include "object.h"
 #include <math.h>
 
@@ -28,46 +27,10 @@ static void clip_end_point(const float inputs[4], float *t[1]) {
   *t[0] = ny * px - nx * py; // (ny, -nx) · (px, py)
 }
 
-int cmd_line(const int argc, const char **argv) {
-  static char *name, *color_str;
-  static int group, ray, seg;
-  static struct argparse parse;
-  static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name),    OPT_STRING('c', "color", &color_str),
-      OPT_INTEGER('g', "group", &group), OPT_BOOLEAN(0, "ray", &ray),
-      OPT_BOOLEAN(0, "seg", &seg),       OPT_END()};
+static void line_ctrl(const Vec2 pos, const bool click) {
+  if (!click) return;
+}
 
-  name = color_str = NULL, group = ray = seg = 0;
-  argparse_init(&parse, opt, NULL, 0);
-  const int remaining = argparse_parse(&parse, argc, argv);
-  if (remaining < 0) return MSG_ERROR;
-
-  int32_t color;
-  propagate_error(parse_new_name(name, 1, &name));
-  propagate_error(parse_color(color_str, &color));
-  propagate_error(check_group(group));
-
-  if (remaining < 2) throw_error("line <point> <point> [--seg]");
-
-  GeomId xyxy[4];
-  if (!object_get_args(POINT, argv[0], xyxy)) return MSG_ERROR;
-  if (!object_get_args(POINT, argv[1], xyxy + 2)) return MSG_ERROR;
-
-  const GeomId nx = graph_add_value(0);
-  const GeomId ny = graph_add_value(0);
-  const GeomId dd = graph_add_value(0);
-  const GeomId t1 = graph_add_value(-HUGE_VALUE);
-  const GeomId t2 = graph_add_value(HUGE_VALUE);
-  const GeomId args[] = {nx, ny, dd, t1, t2};
-  graph_add_constraint(4, xyxy, 3, args, line_from_2points);
-  if (ray || seg) {
-    const GeomId inputs[] = {nx, ny, xyxy[0], xyxy[1]};
-    graph_add_constraint(4, inputs, 1, &t1, clip_end_point);
-  }
-  if (seg) {
-    const GeomId inputs[] = {nx, ny, xyxy[2], xyxy[3]};
-    graph_add_constraint(4, inputs, 1, &t2, clip_end_point);
-  }
-  object_create(LINE, args, name, group, color);
-  return 0;
+void cmd_line(Command *cmd) {
+  cmd->usage = "";
 }

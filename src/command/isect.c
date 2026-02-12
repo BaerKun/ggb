@@ -1,5 +1,4 @@
-#include "argparse.h"
-#include "message.h"
+#include "command.h"
 #include "object.h"
 #include <math.h>
 
@@ -61,55 +60,5 @@ static void isect_circle_circle(const float inputs[6], float *outputs[4]) {
   *outputs[3] = py + h * ux;
 }
 
-int cmd_isect(const int argc, const char **argv) {
-  static char *name_str, *color_str;
-  static int group;
-  static struct argparse parse;
-  static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name_str), OPT_STRING('c', "color", &color_str),
-      OPT_INTEGER('g', "group", &group), OPT_END()};
-
-  name_str = color_str = NULL, group = 0;
-  argparse_init(&parse, opt, NULL, 0);
-  const int remaining = argparse_parse(&parse, argc, argv);
-  if (remaining < 0) return MSG_ERROR;
-
-  char *names[2];
-  int32_t color;
-  propagate_error(parse_new_name(name_str, 2, names));
-  propagate_error(parse_color(color_str, &color));
-  propagate_error(check_group(group));
-
-  if (remaining < 2) throw_error("isect <line/circle> <line/circle>");
-
-  GeomId inputs[8];
-  const ObjectType type1 = object_get_args(LINE | CIRCLE, argv[0], inputs);
-  if (type1 == UNKNOWN) return MSG_ERROR;
-  const ObjectType type2 = object_get_args(LINE | CIRCLE, argv[1], inputs + 3);
-  if (type2 == UNKNOWN) return MSG_ERROR;
-
-  GeomId outputs[4];
-  outputs[0] = graph_add_value(0);
-  outputs[1] = graph_add_value(0);
-
-  if (type1 == LINE && type2 == LINE) {
-    graph_add_constraint(6, inputs, 2, outputs, isect_line_line);
-    object_create(POINT, outputs, names[0], group, color);
-    return 0;
-  }
-
-  outputs[2] = graph_add_value(0);
-  outputs[3] = graph_add_value(0);
-  if (type1 == LINE && type2 == CIRCLE) {
-    graph_add_constraint(6, inputs, 4, outputs, isect_line_circle);
-  } else if (type1 == CIRCLE && type2 == CIRCLE) {
-    graph_add_constraint(6, inputs, 4, outputs, isect_circle_circle);
-  } else {
-    const GeomId swap_inputs[6] = {inputs[3], inputs[4], inputs[5],
-                                   inputs[0], inputs[1], inputs[2]};
-    graph_add_constraint(6, swap_inputs, 4, outputs, isect_line_circle);
-  }
-  object_create(POINT, outputs, names[0], group, color);
-  object_create(POINT, outputs + 2, names[1], group, color);
-  return 0;
+void cmd_isect(Command *cmd) {
 }

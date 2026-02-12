@@ -239,11 +239,13 @@ typedef enum bool { false = 0, true = !false } bool;
 #define RL_BOOL_TYPE
 #endif
 
-// Vector2, 2 components
+#include "types.h"
+
+/* Vector2, 2 components
 typedef struct Vector2 {
   float x; // Vector x component
   float y; // Vector y component
-} Vector2;
+} Vector2;*/
 
 // Vector3, 3 components
 typedef struct Vector3 {
@@ -271,13 +273,13 @@ typedef struct Matrix {
   float m3, m7, m11, m15; // Matrix fourth row (4 components)
 } Matrix;
 
-// Color, 4 components, R8G8B8A8 (32bit)
+/* Color, 4 components, R8G8B8A8 (32bit)
 typedef struct Color {
   unsigned char r; // Color red value
   unsigned char g; // Color green value
   unsigned char b; // Color blue value
   unsigned char a; // Color alpha value
-} Color;
+} Color;*/
 
 // Rectangle, 4 components
 typedef struct Rectangle {

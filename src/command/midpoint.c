@@ -1,41 +1,48 @@
-#include "argparse.h"
-#include "message.h"
+#include "command.h"
 #include "object.h"
-#include <string.h>
 
-static void midpoint(const float inputs[4], float *outputs[2]) {
+static void midpoint_eval(const float inputs[4], float *outputs[2]) {
   *outputs[0] = (inputs[0] + inputs[2]) / 2.f;
   *outputs[1] = (inputs[1] + inputs[3]) / 2.f;
 }
 
-int cmd_midpoint(const int argc, const char **argv) {
-  static char *name, *color_str;
-  static int group;
-  static struct argparse parse;
-  static struct argparse_option opt[] = {
-      OPT_STRING('n', "name", &name), OPT_STRING('c', "color", &color_str),
-      OPT_INTEGER('g', "group", &group), OPT_END()};
+static void select_point(const Vec2 pos, GeomId *args){
+  const GeomId select = board_select_object(POINT, pos);
+  if (select == -1) {
+    const Vec2 world_pos = xform_to_world(pos);
+    args[0] = graph_add_value(world_pos.x);
+    args[1] = graph_add_value(world_pos.y);
+    object_create(POINT, args);
+    board_update_buffer();
+  } else {
+    const GeomObject *obj = object_get(select);
+    args[0] = obj->args[0];
+    args[1] = obj->args[1];
+  }
+}
 
-  name = color_str = NULL, group = 0;
-  argparse_init(&parse, opt, NULL, 0);
-  const int remaining = argparse_parse(&parse, argc, argv);
-  if (remaining < 0) return MSG_ERROR;
+static void midpoint_ctrl(const Vec2 pos, const bool click) {
+  if (!click) return;
 
-  int32_t color;
-  propagate_error(parse_new_name(name, 1, &name));
-  propagate_error(parse_color(color_str, &color));
-  propagate_error(check_group(group));
+  static int n = 0;
+  static GeomId inputs[4];
 
-  if (remaining < 2) throw_error("midpoint <point> <point>");
+  if (n == 0) {
+    select_point(pos, inputs);
+    n++;
+  } else {
+    select_point(pos, inputs + 2);
+    n--;
 
-  GeomId xyxy[4];
-  if (!object_get_args(POINT, argv[0], xyxy)) return MSG_ERROR;
-  if (!object_get_args(POINT, argv[1], xyxy + 2)) return MSG_ERROR;
+    GeomId args[2];
+    args[0] = graph_add_value(0);
+    args[1] = graph_add_value(0);
+    graph_add_constraint(4, inputs, 2, args, midpoint_eval);
+    object_create(POINT, args);
+  }
+}
 
-  const GeomId arg_x = graph_add_value(0);
-  const GeomId arg_y = graph_add_value(0);
-  const GeomId args[] = {arg_x, arg_y};
-  graph_add_constraint(4, xyxy, 2, args, midpoint);
-  object_create(POINT, args, name, group, color);
-  return 0;
+void cmd_midpoint(Command *cmd){
+  cmd->usage = "";
+  cmd->ctrl = midpoint_ctrl;
 }

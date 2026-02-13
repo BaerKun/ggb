@@ -1,143 +1,7 @@
-/**********************************************************************************************
- *
- *   raylib v5.5 - A simple and easy-to-use library to enjoy videogames
- *programming (www.raylib.com)
- *
- *   FEATURES:
- *       - NO external dependencies, all required libraries included with raylib
- *       - Multiplatform: Windows, Linux, FreeBSD, OpenBSD, NetBSD, DragonFly,
- *                        MacOS, Haiku, Android, Raspberry Pi, DRM native,
- *HTML5.
- *       - Written in plain C code (C99) in PascalCase/camelCase notation
- *       - Hardware accelerated with OpenGL (1.1, 2.1, 3.3, 4.3, ES2, ES3 -
- *choose at compile)
- *       - Unique OpenGL abstraction layer (usable as standalone module): [rlgl]
- *       - Multiple Fonts formats supported (TTF, OTF, FNT, BDF, Sprite fonts)
- *       - Outstanding texture formats support, including compressed formats
- *(DXT, ETC, ASTC)
- *       - Full 3d support for 3d Shapes, Models, Billboards, Heightmaps and
- *more!
- *       - Flexible Materials system, supporting classic maps and PBR maps
- *       - Animated 3D models supported (skeletal bones animation) (IQM, M3D,
- *GLTF)
- *       - Shaders support, including Model shaders and Postprocessing shaders
- *       - Powerful math module for Vector, Matrix and Quaternion operations:
- *[raymath]
- *       - Audio loading and playing with streaming support (WAV, OGG, MP3,
- *FLAC, QOA, XM, MOD)
- *       - VR stereo rendering with configurable HMD device parameters
- *       - Bindings to multiple programming languages available!
- *
- *   NOTES:
- *       - One default Font is loaded on InitWindow()->LoadFontDefault() [core,
- *text]
- *       - One default Texture2D is loaded on rlglInit(), 1x1 white pixel
- *R8G8B8A8 [rlgl] (OpenGL 3.3 or ES2)
- *       - One default Shader is loaded on rlglInit()->rlLoadShaderDefault()
- *[rlgl] (OpenGL 3.3 or ES2)
- *       - One default RenderBatch is loaded on rlglInit()->rlLoadRenderBatch()
- *[rlgl] (OpenGL 3.3 or ES2)
- *
- *   DEPENDENCIES (included):
- *       [rcore][GLFW] rglfw (Camilla Löwy - github.com/glfw/glfw) for
- *window/context management and input [rcore][RGFW] rgfw (ColleagueRiley -
- *github.com/ColleagueRiley/RGFW) for window/context management and input [rlgl]
- *glad/glad_gles2 (David Herberth - github.com/Dav1dde/glad) for OpenGL 3.3
- *extensions loading [raudio] miniaudio (David Reid -
- *github.com/mackron/miniaudio) for audio device/context management
- *
- *   OPTIONAL DEPENDENCIES (included):
- *       [rcore] msf_gif (Miles Fogle) for GIF recording
- *       [rcore] sinfl (Micha Mettke) for DEFLATE decompression algorithm
- *       [rcore] sdefl (Micha Mettke) for DEFLATE compression algorithm
- *       [rcore] rprand (Ramon Snatamaria) for pseudo-random numbers generation
- *       [rtextures] qoi (Dominic Szablewski - https://phoboslab.org) for QOI
- *image manage [rtextures] stb_image (Sean Barret) for images loading (BMP, TGA,
- *PNG, JPEG, HDR...) [rtextures] stb_image_write (Sean Barret) for image writing
- *(BMP, TGA, PNG, JPG) [rtextures] stb_image_resize2 (Sean Barret) for image
- *resizing algorithms [rtextures] stb_perlin (Sean Barret) for Perlin Noise
- *image generation [rtext] stb_truetype (Sean Barret) for ttf fonts loading
- *       [rtext] stb_rect_pack (Sean Barret) for rectangles packing
- *       [rmodels] par_shapes (Philip Rideout) for parametric 3d shapes
- *generation [rmodels] tinyobj_loader_c (Syoyo Fujita) for models loading (OBJ,
- *MTL) [rmodels] cgltf (Johannes Kuhlmann) for models loading (glTF) [rmodels]
- *m3d (bzt) for models loading (M3D, https://bztsrc.gitlab.io/model3d) [rmodels]
- *vox_loader (Johann Nadalutti) for models loading (VOX) [raudio] dr_wav (David
- *Reid) for WAV audio file loading [raudio] dr_flac (David Reid) for FLAC audio
- *file loading [raudio] dr_mp3 (David Reid) for MP3 audio file loading [raudio]
- *stb_vorbis (Sean Barret) for OGG audio loading [raudio] jar_xm (Joshua
- *Reisenauer) for XM audio module loading [raudio] jar_mod (Joshua Reisenauer)
- *for MOD audio module loading [raudio] qoa (Dominic Szablewski -
- *https://phoboslab.org) for QOA audio manage
- *
- *
- *   LICENSE: zlib/libpng
- *
- *   raylib is licensed under an unmodified zlib/libpng license, which is an
- *OSI-certified, BSD-like license that allows static linking with closed source
- *software:
- *
- *   Copyright (c) 2013-2024 Ramon Santamaria (@raysan5)
- *
- *   This software is provided "as-is", without any express or implied warranty.
- *In no event will the authors be held liable for any damages arising from the
- *use of this software.
- *
- *   Permission is granted to anyone to use this software for any purpose,
- *including commercial applications, and to alter it and redistribute it freely,
- *subject to the following restrictions:
- *
- *     1. The origin of this software must not be misrepresented; you must not
- *claim that you wrote the original software. If you use this software in a
- *product, an acknowledgment in the product documentation would be appreciated
- *but is not required.
- *
- *     2. Altered source versions must be plainly marked as such, and must not
- *be misrepresented as being the original software.
- *
- *     3. This notice may not be removed or altered from any source
- *distribution.
- *
- **********************************************************************************************/
-
 #ifndef RAYLIB_H
 #define RAYLIB_H
 
 #include <stdarg.h> // Required for: va_list - Only used by TraceLogCallback
-
-#define RAYLIB_VERSION_MAJOR 5
-#define RAYLIB_VERSION_MINOR 5
-#define RAYLIB_VERSION_PATCH 0
-#define RAYLIB_VERSION "5.5"
-
-// Function specifiers in case library is build/used as a shared library
-// NOTE: Microsoft specifiers to tell compiler that symbols are
-// imported/exported from a .dll NOTE: visibility("default") attribute makes
-// symbols "visible" when compiled with -fvisibility=hidden
-#if defined(_WIN32)
-#if defined(__TINYC__)
-#define __declspec(x) __attribute__((x))
-#endif
-#if defined(BUILD_LIBTYPE_SHARED)
-#define RLAPI                                                                  \
-  __declspec(dllexport) // We are building the library as a Win32 shared library
-                        // (.dll)
-#elif defined(USE_LIBTYPE_SHARED)
-#define RLAPI                                                                  \
-  __declspec(dllimport) // We are using the library as a Win32 shared library
-                        // (.dll)
-#endif
-#else
-#if defined(BUILD_LIBTYPE_SHARED)
-#define RLAPI                                                                  \
-  __attribute__((visibility(                                                   \
-      "default"))) // We are building as a Unix shared library (.so/.dylib)
-#endif
-#endif
-
-#ifndef RLAPI
-#define RLAPI // Functions defined as 'extern' by default (implicit specifiers)
-#endif
 
 //----------------------------------------------------------------------------------
 // Some basic Defines
@@ -152,21 +16,6 @@
 #define RAD2DEG (180.0f / PI)
 #endif
 
-// Allow custom memory allocators
-// NOTE: Require recompiling raylib sources
-#ifndef RL_MALLOC
-#define RL_MALLOC(sz) malloc(sz)
-#endif
-#ifndef RL_CALLOC
-#define RL_CALLOC(n, sz) calloc(n, sz)
-#endif
-#ifndef RL_REALLOC
-#define RL_REALLOC(ptr, sz) realloc(ptr, sz)
-#endif
-#ifndef RL_FREE
-#define RL_FREE(ptr) free(ptr)
-#endif
-
 // NOTE: MSVC C++ compiler does not support compound literals (C99 feature)
 // Plain structures in C++ (without constructors) can be initialized with { }
 // This is called aggregate initialization (C++11 feature)
@@ -174,13 +23,6 @@
 #define CLITERAL(type) type
 #else
 #define CLITERAL(type) (type)
-#endif
-
-// Some compilers (mostly macos clang) default to C++98,
-// where aggregate initialization can't be used
-// So, give a more clear error stating how to fix this
-#if !defined(_MSC_VER) && (defined(__cplusplus) && __cplusplus < 201103L)
-#error "C++11 or later is required. Add -std=c++11"
 #endif
 
 // NOTE: We set some defines with some data types declared by raylib
@@ -226,18 +68,6 @@
 #define MAGENTA CLITERAL(Color){255, 0, 255, 255} // Magenta
 #define RAYWHITE                                                               \
   CLITERAL(Color){245, 245, 245, 255} // My own White (raylib logo)
-
-//----------------------------------------------------------------------------------
-// Structures Definition
-//----------------------------------------------------------------------------------
-// Boolean type
-#if (defined(__STDC__) && __STDC_VERSION__ >= 199901L) ||                      \
-    (defined(_MSC_VER) && _MSC_VER >= 1800)
-#include <stdbool.h>
-#elif !defined(__cplusplus) && !defined(bool)
-typedef enum bool { false = 0, true = !false } bool;
-#define RL_BOOL_TYPE
-#endif
 
 #include "types.h"
 
@@ -743,11 +573,6 @@ typedef enum {
   KEY_VOLUME_DOWN = 25 // Key: Android volume down button
 } KeyboardKey;
 
-// Add backwards compatibility support for deprecated names
-#define MOUSE_LEFT_BUTTON MOUSE_BUTTON_LEFT
-#define MOUSE_RIGHT_BUTTON MOUSE_BUTTON_RIGHT
-#define MOUSE_MIDDLE_BUTTON MOUSE_BUTTON_MIDDLE
-
 // Mouse buttons
 typedef enum {
   MOUSE_BUTTON_LEFT = 0,    // Mouse button left
@@ -1056,7 +881,9 @@ int rl_get_char_pressed();
 void rl_set_exit_key(int key);
 
 bool rl_is_mouse_button_pressed(int button);
+bool rl_is_mouse_button_down(int button);
 bool rl_is_mouse_button_released(int button);
+bool rl_is_mouse_button_up(int button);
 Vector2 rl_get_mouse_position();
 Vector2 rl_get_mouse_delta();
 

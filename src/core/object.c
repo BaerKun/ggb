@@ -11,13 +11,15 @@ typedef struct {
 } GeomSparseArray;
 
 static const GeomSize type_argc[] = {0, 2, 3, 0, 5};
+static const Color type_color[] = {
+    {}, {0, 82, 172, 255}, {130, 130, 130, 255}, {}, {130, 130, 130, 255}};
 static struct {
   StringHashTable hash;
   GeomSparseArray objects;
 } internal;
 
 static uint64_t ctz(uint64_t value);
-static GeomId object_alloc();
+static GeomId object_alloc(ObjectType type);
 static void object_remove(GeomId id);
 static void object_module_resize();
 
@@ -36,21 +38,25 @@ void object_module_init() {
 void object_module_cleanup() {
   free(internal.objects.bitmap);
   free(internal.objects.data);
-  string_hash_free(&internal.hash);
+  string_hash_release(&internal.hash);
   computation_graph_cleanup();
 }
 
 GeomObject *object_get(const GeomId id) { return internal.objects.data + id; }
 
+GeomId object_find(const char *name) {
+  return string_hash_find(&internal.hash, name);
+}
+
 GeomId object_create(const ObjectType type, const GeomId *args) {
   if (internal.objects.size == internal.objects.cap) object_module_resize();
 
-  const GeomId id = object_alloc();
+  const GeomId id = object_alloc(type);
   GeomObject *obj = internal.objects.data + id;
   obj->type = type;
   obj->visible = true;
-  obj->color = (Color){0, 0, 0, 0};
 
+  obj->color = type_color[type];
   for (int i = 0; i < type_argc[type]; i++) {
     obj->args[i] = args[i];
     graph_ref_value(args[i]);
@@ -94,15 +100,36 @@ static inline uint64_t ctz(const uint64_t value) {
   return res;
 }
 
-static void get_default_name(char *name) {
-  static unsigned int id = 1;
-  sprintf(name, "#%05u", id++);
+static void get_default_name(char *name, const ObjectType type) {
+  static unsigned point = 0, line = 0, circle = 0;
+  switch (type) {
+  case POINT:
+    if (point < 26) {
+      sprintf(name, "%c", 'A' + point);
+    } else {
+      sprintf(name, "%c%u", 'A' + point % 26, point / 26);
+    }
+    point++;
+    return;
+  case LINE:
+    if (line < 26) {
+      sprintf(name, "%c", 'a' + line);
+    } else {
+      sprintf(name, "%c%u", 'a' + line % 26, line / 26);
+    }
+    line++;
+    return;
+  case CIRCLE:
+    sprintf(name, "c%u", circle++);
+  default:
+    break;
+  }
 }
 
-static GeomId object_alloc() {
+static GeomId object_alloc(const ObjectType type) {
   const GeomId id = string_hash_alloc_id(&internal.hash);
   GeomObject *obj = internal.objects.data + id;
-  get_default_name(obj->name);
+  get_default_name(obj->name, type);
   string_hash_insert(&internal.hash, obj->name, id);
   internal.objects.bitmap[id >> 6] |= 1llu << (id & 63);
   internal.objects.size++;

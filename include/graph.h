@@ -3,8 +3,8 @@
 
 #include "types.h"
 
-#define HUGE_VALUE 4096.f
-#define EPS 1e-6f
+static const float HUGE_VALUE = 4096.f;
+static const float EPS = 1e-6f;
 
 typedef void (*ValueEval)(const float *inputs, float **outputs);
 

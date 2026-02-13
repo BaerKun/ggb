@@ -16,7 +16,9 @@ int rl_get_char_pressed() { return GetCharPressed(); }
 void rl_set_exit_key(int key) { SetExitKey(key); }
 
 bool rl_is_mouse_button_pressed(int button) { return IsMouseButtonPressed(button); }
+bool rl_is_mouse_button_down(int button) { return IsMouseButtonDown(button); }
 bool rl_is_mouse_button_released(int button) { return IsMouseButtonReleased(button); }
+bool rl_is_mouse_button_up(int button) { return IsMouseButtonUp(button); }
 Vector2 rl_get_mouse_position() { return GetMousePosition(); }
 Vector2 rl_get_mouse_delta() { return GetMouseDelta(); }
 

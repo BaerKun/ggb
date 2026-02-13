@@ -38,10 +38,6 @@ static struct {
   float xform_rotate[2][2];
 
   char selected_object[8];
-
-  struct {
-    Color point, circle, line;
-  } default_color;
   struct {
     BoardGeomQueue point, line, circle;
   } visual_queue;
@@ -53,22 +49,16 @@ static struct {
 
 static void board_queue_init(BoardGeomQueue *q, GeomSize init_size);
 static BoardGeomObject *board_queue_alloc(BoardGeomQueue *q);
-static bool check_collision_point_point(Vec2 pt1, Vec2 pt2, float radius);
 static void get_board_buffer(GeomId id, const GeomObject *obj);
 static float vec2_distance(Vec2 v1, Vec2 v2);
 
-void board_init(const float x, const float y, const float width,
-                const float height) {
-  board.default_color.point = DARKBLUE;
-  board.default_color.circle = GRAY;
-  board.default_color.line = GRAY;
-
-  board.window = (Rectangle){x, y, width, height};
+void board_init(const float x, const float y, const float w, const float h) {
+  board.window = (Rectangle){x, y, w, h};
   board.font = rl_get_font_default();
   board.control = NULL;
 
   board.xform_scale = 1.f;
-  board.xform_translate.y = height;
+  board.xform_translate.y = h;
   board.xform_rotate[0][0] = 1.f;
   board.xform_rotate[1][1] = -1.f;
 
@@ -86,40 +76,18 @@ void board_cleanup() {
 }
 
 void board_listen() {
-  enum { NONE, LEFT, RIGHT };
-  static int pressed_button = NONE;
-  static Vec2 pressed_pos = {0, 0};
-
-  int click = NONE;
   const Vec2 mouse_pos = rl_get_mouse_position();
-  if (pressed_button == NONE &&
-      rl_check_collision_point_rec(mouse_pos, board.window)) {
-    if (rl_is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) {
-      pressed_button = LEFT;
-      pressed_pos = mouse_pos;
-    } else if (rl_is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)) {
-      pressed_button = RIGHT;
-      pressed_pos = mouse_pos;
-    }
+  if (!rl_check_collision_point_rec(mouse_pos, board.window)) return;
+
+  MouseEvent event = 0;
+  if (rl_is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) {
+    event = MOUSE_PRESS;
+  } else if (rl_is_mouse_button_released(MOUSE_BUTTON_LEFT)) {
+    event = MOUSE_RELEASE;
   }
 
-  if (pressed_button == LEFT &&
-      rl_is_mouse_button_released(MOUSE_BUTTON_LEFT)) {
-    if (check_collision_point_point(mouse_pos, pressed_pos, 3)) {
-      click = LEFT;
-    }
-    pressed_button = NONE;
-    pressed_pos = (Vec2){0, 0};
-  } else if (pressed_button == RIGHT &&
-             rl_is_mouse_button_released(MOUSE_BUTTON_RIGHT)) {
-    if (check_collision_point_point(mouse_pos, pressed_pos, 3)) {
-      click = RIGHT;
-    }
-    pressed_button = NONE;
-    pressed_pos = (Vec2){0, 0};
-  }
-  if (board.control) {
-    board.control(mouse_pos, click == LEFT);
+  if (board.control && event) {
+    board.control(mouse_pos, event);
   }
 }
 
@@ -143,59 +111,13 @@ void board_draw() {
   for_in_queue(obj, board.visual_queue.point) {
     rl_draw_circle_v(obj->data.pt, 2, obj->color);
   }
-  for_in_queue(obj, board.visual_queue.circle) {
-    rl_draw_text_ex(board.font, obj->name, obj->name_pos, 20, 1, obj->color);
-  }
-  for_in_queue(obj, board.visual_queue.line) {
-    rl_draw_text_ex(board.font, obj->name, obj->name_pos, 20, 1, obj->color);
-  }
   for_in_queue(obj, board.visual_queue.point) {
     rl_draw_text_ex(board.font, obj->name, obj->name_pos, 20, 1, obj->color);
   }
 }
 
 void board_update_buffer() { board.should_update_buffer = true; }
-
-Vec2 xform_to_world(const Vec2 pos) {
-  const Vec2 translated = {pos.x - board.xform_translate.x,
-                           pos.y - board.xform_translate.y};
-  const float(*rotate)[2] = board.xform_rotate;
-  const float cross = rotate[0][0] * rotate[1][1] - rotate[0][1] * rotate[1][0];
-  const Vec2 rotated = {
-      (rotate[0][1] * translated.y - rotate[1][1] * translated.x) / cross,
-      (rotate[1][0] * translated.x + rotate[0][0] * translated.y) / cross};
-  const Vec2 scaled = {rotated.x / board.xform_scale,
-                       rotated.y / board.xform_scale};
-  return scaled;
-}
-
-GeomId board_select_object(const ObjectType types, const Vec2 pos) {
-  BoardGeomObject *obj;
-  if (types & POINT) {
-    for_in_queue(obj, board.visual_queue.point) {
-      if (check_collision_point_point(pos, obj->data.pt, 5)) {
-        return obj->id;
-      }
-    }
-  }
-  if (types | LINE) {
-    for_in_queue(obj, board.visual_queue.line) {
-      if (rl_check_collision_point_line(pos, obj->data.ln.pt1, obj->data.ln.pt2,
-                                        5)) {
-        return obj->id;
-      }
-    }
-  }
-  if (types | CIRCLE) {
-    for_in_queue(obj, board.visual_queue.circle) {
-      const float dist = vec2_distance(pos, obj->data.cr.center);
-      if (fabsf(dist - obj->data.cr.radius) <= 5) {
-        return obj->id;
-      }
-    }
-  }
-  return -1;
-}
+void board_set_control(const BoardControl ctrl) { board.control = ctrl; }
 
 static void board_queue_init(BoardGeomQueue *q, const GeomSize init_size) {
   q->cap = init_size;
@@ -219,11 +141,6 @@ static float vec2_distance(const Vec2 v1, const Vec2 v2) {
   return sqrtf(dx * dx + dy * dy);
 }
 
-static bool check_collision_point_point(const Vec2 pt1, const Vec2 pt2,
-                                        const float radius) {
-  return fabsf(pt1.x - pt2.x) <= radius && fabsf(pt1.y - pt2.y) <= radius;
-}
-
 static Vec2 xform_to_board(const float x, const float y) {
   const Vec2 scaled = {x * board.xform_scale, y * board.xform_scale};
   const Vec2 rotated = {
@@ -235,7 +152,47 @@ static Vec2 xform_to_board(const float x, const float y) {
   return translated;
 }
 
-static inline bool is_default_color(const Color color) { return color.a == 0; }
+Vec2 xform_to_world(const Vec2 pos) {
+  const Vec2 translated = {pos.x - board.xform_translate.x,
+                           pos.y - board.xform_translate.y};
+  const float(*rotate)[2] = board.xform_rotate;
+  const float cross = rotate[0][0] * rotate[1][1] - rotate[0][1] * rotate[1][0];
+  const Vec2 rotated = {
+    ( rotate[1][1] * translated.x - rotate[0][1] * translated.y ) / cross,
+    ( -rotate[1][0] * translated.x + rotate[0][0] * translated.y ) / cross
+};
+  const Vec2 scaled = {rotated.x / board.xform_scale,
+                       rotated.y / board.xform_scale};
+  return scaled;
+}
+
+GeomId board_select_object(const ObjectType types, const Vec2 pos) {
+  BoardGeomObject *obj;
+  if (types & POINT) {
+    for_in_queue(obj, board.visual_queue.point) {
+      if (rl_check_collision_point_circle(pos, obj->data.pt, 5)) {
+        return obj->id;
+      }
+    }
+  }
+  if (types & LINE) {
+    for_in_queue(obj, board.visual_queue.line) {
+      if (rl_check_collision_point_line(pos, obj->data.ln.pt1, obj->data.ln.pt2,
+                                        5)) {
+        return obj->id;
+      }
+    }
+  }
+  if (types & CIRCLE) {
+    for_in_queue(obj, board.visual_queue.circle) {
+      const float dist = vec2_distance(pos, obj->data.cr.center);
+      if (fabsf(dist - obj->data.cr.radius) <= 5) {
+        return obj->id;
+      }
+    }
+  }
+  return -1;
+}
 
 static void get_board_buffer(const GeomId id, const GeomObject *obj) {
   if (!obj->visible) return;
@@ -251,8 +208,7 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
     memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
     b_obj->data.pt = pt;
     b_obj->name_pos = pt;
-    b_obj->color =
-        is_default_color(obj->color) ? board.default_color.point : obj->color;
+    b_obj->color = obj->color;
     break;
   }
   case CIRCLE: {
@@ -268,8 +224,7 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
     b_obj->data.cr.radius = radius;
     b_obj->name_pos =
         (Vec2){center.x + radius / 1.414f, center.y + radius / 1.414f};
-    b_obj->color =
-        is_default_color(obj->color) ? board.default_color.circle : obj->color;
+    b_obj->color = obj->color;
     break;
   }
   default: {
@@ -287,8 +242,7 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
     b_obj->data.ln.pt1 = pt1;
     b_obj->data.ln.pt2 = pt2;
     b_obj->name_pos = (Vec2){(pt1.x + pt2.x) / 2.f, (pt1.y + pt2.y) / 2.f};
-    b_obj->color =
-        is_default_color(obj->color) ? board.default_color.line : obj->color;
+    b_obj->color = obj->color;
   }
   }
 }

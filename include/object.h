@@ -15,6 +15,7 @@ void object_module_init();
 void object_module_cleanup();
 
 GeomObject* object_get(GeomId id);
+GeomId object_find(const char *name);
 GeomId object_create(ObjectType type, const GeomId *args);
 void object_delete(GeomId id);
 void object_delete_all();

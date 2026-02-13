@@ -24,7 +24,7 @@ void string_hash_init(StringHashTable *table, const GeomSize init_size) {
   for (GeomId i = 0; i < init_size; i++) table->entries[i].next = i + 1;
 }
 
-void string_hash_free(const StringHashTable *table) {
+void string_hash_release(const StringHashTable *table) {
   free(table->heads);
   free(table->entries);
 }
@@ -47,7 +47,7 @@ void string_hash_insert(const StringHashTable *table, const char *str,
   *head = id;
 }
 
-GeomId string_hash_remove(StringHashTable *table, const char *str) {
+void string_hash_remove(StringHashTable *table, const char *str) {
   const uint32_t hash = str_hash(str);
   GeomId *ptr = table->heads + hash % table->cap;
   for (GeomId i; (i = *ptr) != -1;) {
@@ -56,11 +56,10 @@ GeomId string_hash_remove(StringHashTable *table, const char *str) {
       *ptr = entry->next;
       entry->next = table->free_head;
       table->free_head = i;
-      return i;
+      return;
     }
     ptr = &entry->next;
   }
-  return -1;
 }
 
 void string_hash_clear(StringHashTable *table) {

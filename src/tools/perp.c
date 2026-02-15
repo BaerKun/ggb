@@ -2,10 +2,10 @@
 #include "tool.h"
 
 static struct {
-  bool point;
-  bool line;
+  ObjectType first_t;
+  GeomId first_id;
   GeomId inputs[4];
-} internal;
+} internal = {UNKNOWN, -1};
 
 static void perp_eval(const float inputs[4], float *output[3]) {
   const float nx = inputs[0];
@@ -17,87 +17,64 @@ static void perp_eval(const float inputs[4], float *output[3]) {
   *output[2] = -ny * px + nx * py; // np · (px, py)
 }
 
-static void perp_foot_eval(const float inputs[4], float *output[2]) {
-  const float nx = inputs[0]; // perp line
-  const float ny = inputs[1];
-  const float d1 = inputs[2]; // perp line
-  const float d2 = inputs[3]; // baseline
-  *output[0] = nx * d1 + ny * d2;
-  *output[1] = ny * d1 - nx * d2;
-}
-
-static void clip_end_point(const float inputs[4], float *t[1]) {
-  const float nx = inputs[0];
-  const float ny = inputs[1];
-  const float px = inputs[2];
-  const float py = inputs[3];
-  *t[0] = ny * px - nx * py;
-}
-
-
-static void perp_init() {
-  internal.point = false;
-  internal.line = false;
+static void perp_reset() {
+  if (internal.first_id != -1){
+    board_deselect_object(internal.first_id);
+    internal.first_t = UNKNOWN;
+    internal.first_id = -1;
+  }
 }
 
 static void perp_ctrl(const Vec2 pos, const MouseEvent event) {
   if (event != MOUSE_PRESS) return;
 
   GeomId id;
-  switch (internal.point + internal.line * 2) {
-  case 0:
-    id = board_select_object(POINT | LINE, pos);
+  if (internal.first_id == -1) {
+    id = board_find_object(POINT | LINE, pos);
     if (id == -1) {
-      create_point(pos, internal.inputs + 2);
-      internal.point = true;
+      id = create_point(pos, internal.inputs + 2);
+      internal.first_t = POINT;
     } else {
       const GeomObject *obj = object_get(id);
       if (obj->type == LINE) {
         internal.inputs[0] = obj->args[0];
         internal.inputs[1] = obj->args[1];
-        internal.line = true;
+        internal.first_t = LINE;
       } else {
         internal.inputs[2] = obj->args[0];
         internal.inputs[3] = obj->args[1];
-        internal.point = true;
+        internal.first_t = POINT;
       }
     }
-    break;
-  case 1:
-    id = board_select_object(LINE, pos);
+    internal.first_id = id;
+    board_select_object(id);
+    return;
+  }
+
+  if (internal.first_t == POINT) {
+    id = board_find_object(LINE, pos);
     if (id != -1) {
       const GeomObject *obj = object_get(id);
       internal.inputs[0] = obj->args[0];
       internal.inputs[1] = obj->args[1];
-      internal.line = true;
     }
-    break;
-  case 2:
-    id = select_point(pos, internal.inputs + 2);
-    if (id == -1) create_point(pos, internal.inputs + 2);
-    internal.point = true;
-    break;
-  default:
-    break;
+  } else {
+    find_or_create_point(pos, internal.inputs + 2);
   }
 
-  if (internal.point && internal.line) {
-    GeomId args[5];
-    args[0] = graph_add_value(0);
-    args[1] = graph_add_value(0);
-    args[2] = graph_add_value(0);
-    args[3] = graph_add_value(-HUGE_VALUE);
-    args[4] = graph_add_value(HUGE_VALUE);
-    graph_add_constraint(4, internal.inputs, 3, args, perp_eval);
-    object_create(LINE, args);
-    board_update_buffer();
-    perp_init();
-  }
+  GeomId args[5];
+  args[0] = graph_add_value(0);
+  args[1] = graph_add_value(0);
+  args[2] = graph_add_value(0);
+  args[3] = graph_add_value(-HUGE_VALUE);
+  args[4] = graph_add_value(HUGE_VALUE);
+  graph_add_constraint(4, internal.inputs, 3, args, perp_eval);
+  board_add_object(object_create(LINE, args));
+  perp_reset();
 }
-
 
 void tool_perp(GeomTool *tool) {
   tool->usage = "perpendicular line: select line and point";
-  tool->init = perp_init;
   tool->ctrl = perp_ctrl;
+  tool->reset = perp_reset;
 }

@@ -24,7 +24,7 @@ static void object_remove(GeomId id);
 static void object_module_resize();
 
 void object_module_init() {
-  const GeomSize init_size = 64;
+  const GeomSize init_size = 128;
 
   internal.objects.cap = init_size;
   internal.objects.size = 0;

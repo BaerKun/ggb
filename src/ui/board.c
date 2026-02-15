@@ -6,49 +6,53 @@
 #include <string.h>
 
 typedef struct {
-  union {
-    Vec2 pt;
-    struct {
-      Vec2 pt1, pt2;
-    } ln;
-    struct {
-      Vec2 center;
-      float radius;
-    } cr;
-  } data;
-  GeomId id;
+  Vec2 pt1, pt2;
+} BoardLine;
+
+typedef struct {
+  Vec2 center;
+  float radius;
+} BoardCircle;
+
+typedef union {
+  Vec2 pt;
+  BoardLine ln;
+  BoardCircle cr;
+} BoardGeomData;
+
+typedef struct {
+  bool selected;
+  Color color;
   char name[8];
   Vec2 name_pos;
-  Color color;
+  BoardGeomData geom;
 } BoardGeomObject;
 
 typedef struct {
   GeomSize cap, size;
-  BoardGeomObject *elems;
-} BoardGeomQueue;
+  GeomId *elems;
+} BoardGeomVector;
 
 static struct {
   Rectangle window;
   Font font;
-  bool should_update_buffer;
   BoardControl control;
 
   float xform_scale;
   Vec2 xform_translate;
   float xform_rotate[2][2];
 
-  char selected_object[8];
-  struct {
-    BoardGeomQueue point, line, circle;
-  } visual_queue;
+  GeomSize objects_size;
+  BoardGeomObject *objects;
+  BoardGeomVector points, lines, circles;
+  BoardGeomVector selected;
 } board;
 
-#define for_in_queue(ptr, queue)                                               \
-  for (GeomSize i = 0; i < queue.size; i++)                                    \
-    if (ptr = queue.elems + i, 1)
+static const Color selected_color = RED;
 
-static void board_queue_init(BoardGeomQueue *q, GeomSize init_size);
-static BoardGeomObject *board_queue_alloc(BoardGeomQueue *q);
+static void board_vector_init(BoardGeomVector *v, GeomSize init_size);
+static BoardGeomObject *board_vector_insert(BoardGeomVector *v, GeomId id);
+static void board_vector_remove(BoardGeomVector *v, GeomId id);
 static void get_board_buffer(GeomId id, const GeomObject *obj);
 static float vec2_distance(Vec2 v1, Vec2 v2);
 
@@ -62,16 +66,19 @@ void board_init(const float x, const float y, const float w, const float h) {
   board.xform_rotate[0][0] = 1.f;
   board.xform_rotate[1][1] = -1.f;
 
-  board_queue_init(&board.visual_queue.point, 64);
-  board_queue_init(&board.visual_queue.circle, 16);
-  board_queue_init(&board.visual_queue.line, 32);
+  board.objects_size = 128;
+  board.objects = malloc(sizeof(BoardGeomObject) * board.objects_size);
+  board_vector_init(&board.points, 64);
+  board_vector_init(&board.lines, 32);
+  board_vector_init(&board.circles, 16);
   object_module_init();
 }
 
 void board_cleanup() {
-  free(board.visual_queue.point.elems);
-  free(board.visual_queue.line.elems);
-  free(board.visual_queue.circle.elems);
+  free(board.points.elems);
+  free(board.lines.elems);
+  free(board.circles.elems);
+  free(board.objects);
   object_module_cleanup();
 }
 
@@ -92,64 +99,114 @@ void board_listen() {
 }
 
 void board_draw() {
-  if (board.should_update_buffer) {
-    board.visual_queue.point.size = 0;
-    board.visual_queue.circle.size = 0;
-    board.visual_queue.line.size = 0;
-    object_traverse(get_board_buffer);
-    board.should_update_buffer = false;
+  const BoardGeomVector *vector = &board.circles;
+  for (GeomSize i = 0; i < vector->size; i++) {
+    const BoardGeomObject *obj = board.objects + vector->elems[i];
+    const BoardCircle cr = obj->geom.cr;
+    rl_draw_ring(cr.center, cr.radius - 2, cr.radius + 2, 0, 360, 36,
+                 obj->color);
+    if (obj->selected) {
+      rl_draw_circle_lines_v(cr.center, cr.radius - 2.4f, selected_color);
+      rl_draw_circle_lines_v(cr.center, cr.radius + 2.4f, selected_color);
+    }
   }
 
-  BoardGeomObject *obj;
-  for_in_queue(obj, board.visual_queue.circle) {
-    rl_draw_circle_lines_v(obj->data.cr.center, obj->data.cr.radius,
-                           obj->color);
+  vector = &board.lines;
+  for (GeomSize i = 0; i < vector->size; i++) {
+    const BoardGeomObject *obj = board.objects + vector->elems[i];
+    const BoardLine ln = obj->geom.ln;
+    rl_draw_line_ex(ln.pt1, ln.pt2, 4, obj->color);
+    if (obj->selected) {
+      const Vec2 v = {ln.pt1.x - ln.pt2.x, ln.pt1.y - ln.pt2.y};
+      const float norm = sqrtf(v.x * v.x + v.y * v.y);
+      const Vec2 vp = {v.y / norm * 2.3f, -v.x / norm * 2.3f};
+      rl_draw_line_v((Vec2){ln.pt1.x + vp.x, ln.pt1.y + vp.y},
+                     (Vec2){ln.pt2.x + vp.x, ln.pt2.y + vp.y}, selected_color);
+      rl_draw_line_v((Vec2){ln.pt1.x - vp.x, ln.pt1.y - vp.y},
+                     (Vec2){ln.pt2.x - vp.x, ln.pt2.y - vp.y}, selected_color);
+    }
   }
-  for_in_queue(obj, board.visual_queue.line) {
-    rl_draw_line_v(obj->data.ln.pt1, obj->data.ln.pt2, obj->color);
+
+  vector = &board.points;
+  for (GeomSize i = 0; i < vector->size; i++) {
+    const BoardGeomObject *obj = board.objects + vector->elems[i];
+    rl_draw_circle_v(obj->geom.pt, 5, obj->color);
+    if (obj->selected) {
+      rl_draw_circle_lines_v(obj->geom.pt, 5.4f, selected_color);
+    }
   }
-  for_in_queue(obj, board.visual_queue.point) {
-    rl_draw_circle_v(obj->data.pt, 2, obj->color);
-  }
-  for_in_queue(obj, board.visual_queue.point) {
-    rl_draw_text_ex(board.font, obj->name, obj->name_pos, 20, 1, obj->color);
+
+  for (GeomSize i = 0; i < vector->size; i++) {
+    const BoardGeomObject *obj = board.objects + vector->elems[i];
+    const Color color = obj->selected ? selected_color : obj->color;
+    rl_draw_text_ex(board.font, obj->name, obj->name_pos, 20, 1, color);
   }
 }
 
-void board_update_buffer() { board.should_update_buffer = true; }
+GeomId board_find_object(const ObjectType types, const Vec2 pos) {
+  if (types & POINT) {
+    const BoardGeomVector *vector = &board.points;
+    for (GeomSize j = 0; j < vector->size; j++) {
+      const GeomId id = vector->elems[j];
+      const BoardGeomObject *obj = board.objects + id;
+      if (rl_check_collision_point_circle(pos, obj->geom.pt, 6)) {
+        return id;
+      }
+    }
+  }
+  if (types & LINE) {
+    const BoardGeomVector *vector = &board.lines;
+    for (GeomSize j = 0; j < vector->size; j++) {
+      const GeomId id = vector->elems[j];
+      const BoardGeomObject *obj = board.objects + id;
+      if (rl_check_collision_point_line(pos, obj->geom.ln.pt1, obj->geom.ln.pt2,
+                                        3)) {
+        return id;
+      }
+    }
+  }
+  if (types & CIRCLE) {
+    const BoardGeomVector *vector = &board.circles;
+    for (GeomSize j = 0; j < vector->size; j++) {
+      const GeomId id = vector->elems[j];
+      const BoardGeomObject *obj = board.objects + id;
+      const float dist = vec2_distance(pos, obj->geom.cr.center);
+      if (fabsf(dist - obj->geom.cr.radius) <= 3) {
+        return id;
+      }
+    }
+  }
+  return -1;
+}
+
 void board_set_control(const BoardControl ctrl) { board.control = ctrl; }
 
-static void board_queue_init(BoardGeomQueue *q, const GeomSize init_size) {
-  q->cap = init_size;
-  q->size = 0;
-  q->elems = malloc(init_size * sizeof(BoardGeomObject));
+void board_add_object(const GeomId id) {
+  const GeomObject *obj = object_get(id);
+  get_board_buffer(id, obj);
 }
 
-static BoardGeomObject *board_queue_alloc(BoardGeomQueue *q) {
-  if (q->size == q->cap) {
-    q->cap *= 2;
-    void *mem = realloc(q->elems, q->cap * sizeof(BoardGeomObject));
-    if (!mem) abort();
-    q->elems = mem;
+void board_remove_object(const GeomId id) {
+  const GeomObject *obj = object_get(id);
+  switch (obj->type) {
+  case POINT:
+    return board_vector_remove(&board.points, id);
+  case LINE:
+    return board_vector_remove(&board.lines, id);
+  default:
+    return board_vector_remove(&board.circles, id);
   }
-  return q->elems + q->size++;
 }
 
-static float vec2_distance(const Vec2 v1, const Vec2 v2) {
-  const float dx = v1.x - v2.x;
-  const float dy = v1.y - v2.y;
-  return sqrtf(dx * dx + dy * dy);
-}
-
-static Vec2 xform_to_board(const float x, const float y) {
-  const Vec2 scaled = {x * board.xform_scale, y * board.xform_scale};
-  const Vec2 rotated = {
-      board.xform_rotate[0][0] * scaled.x + board.xform_rotate[0][1] * scaled.y,
-      board.xform_rotate[1][0] * scaled.x + board.xform_rotate[1][1] * scaled.y,
-  };
-  const Vec2 translated = {rotated.x + board.xform_translate.x,
-                           rotated.y + board.xform_translate.y};
-  return translated;
+void board_select_object(const GeomId id) { board.objects[id].selected = true; }
+void board_deselect_object(const GeomId id) {
+  if (id == -1) {
+    for (GeomSize i = 0; i < board.objects_size; i++) {
+      board.objects[i].selected = false;
+    }
+  } else {
+    board.objects[id].selected = false;
+  }
 }
 
 Vec2 xform_to_world(const Vec2 pos) {
@@ -158,40 +215,61 @@ Vec2 xform_to_world(const Vec2 pos) {
   const float(*rotate)[2] = board.xform_rotate;
   const float cross = rotate[0][0] * rotate[1][1] - rotate[0][1] * rotate[1][0];
   const Vec2 rotated = {
-    ( rotate[1][1] * translated.x - rotate[0][1] * translated.y ) / cross,
-    ( -rotate[1][0] * translated.x + rotate[0][0] * translated.y ) / cross
-};
+      (rotate[1][1] * translated.x - rotate[0][1] * translated.y) / cross,
+      (-rotate[1][0] * translated.x + rotate[0][0] * translated.y) / cross};
   const Vec2 scaled = {rotated.x / board.xform_scale,
                        rotated.y / board.xform_scale};
   return scaled;
 }
 
-GeomId board_select_object(const ObjectType types, const Vec2 pos) {
-  BoardGeomObject *obj;
-  if (types & POINT) {
-    for_in_queue(obj, board.visual_queue.point) {
-      if (rl_check_collision_point_circle(pos, obj->data.pt, 5)) {
-        return obj->id;
-      }
-    }
+static Vec2 xform_to_board(const float x, const float y) {
+  const Vec2 scaled = {x * board.xform_scale, y * board.xform_scale};
+  const Vec2 rotated = {
+    board.xform_rotate[0][0] * scaled.x + board.xform_rotate[0][1] * scaled.y,
+    board.xform_rotate[1][0] * scaled.x + board.xform_rotate[1][1] * scaled.y,
+};
+  const Vec2 translated = {rotated.x + board.xform_translate.x,
+                           rotated.y + board.xform_translate.y};
+  return translated;
+}
+
+static void board_vector_init(BoardGeomVector *v, const GeomSize init_size) {
+  v->cap = init_size;
+  v->size = 0;
+  v->elems = malloc(init_size * sizeof(BoardGeomObject));
+}
+
+static BoardGeomObject *board_vector_insert(BoardGeomVector *v,
+                                            const GeomId id) {
+  if (v->size == v->cap) {
+    v->cap *= 2;
+    void *mem = realloc(v->elems, v->cap * sizeof(GeomId));
+    if (!mem) abort();
+    v->elems = mem;
   }
-  if (types & LINE) {
-    for_in_queue(obj, board.visual_queue.line) {
-      if (rl_check_collision_point_line(pos, obj->data.ln.pt1, obj->data.ln.pt2,
-                                        5)) {
-        return obj->id;
-      }
-    }
+  if (id >= board.objects_size) {
+    board.objects_size *= 2;
+    void *mem =
+        realloc(board.objects, sizeof(BoardGeomObject) * board.objects_size);
+    if (!mem) abort();
+    board.objects = mem;
   }
-  if (types & CIRCLE) {
-    for_in_queue(obj, board.visual_queue.circle) {
-      const float dist = vec2_distance(pos, obj->data.cr.center);
-      if (fabsf(dist - obj->data.cr.radius) <= 5) {
-        return obj->id;
-      }
-    }
-  }
-  return -1;
+  v->elems[v->size++] = id;
+  return board.objects + id;
+}
+
+static void board_vector_remove(BoardGeomVector *v, const GeomId id) {
+  GeomSize i = 0;
+  while (v->elems[i] != id) i++;
+
+  v->size--;
+  for (; i < v->size; i++) v->elems[i] = v->elems[i + 1];
+}
+
+static float vec2_distance(const Vec2 v1, const Vec2 v2) {
+  const float dx = v1.x - v2.x;
+  const float dy = v1.y - v2.y;
+  return sqrtf(dx * dx + dy * dy);
 }
 
 static void get_board_buffer(const GeomId id, const GeomObject *obj) {
@@ -202,13 +280,14 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
     const float x = graph_get_value(args[0]);
     const float y = graph_get_value(args[1]);
     const Vec2 pt = xform_to_board(x, y);
+    const Vec2 name_pos = {pt.x + 4, pt.y + 4};
 
-    BoardGeomObject *b_obj = board_queue_alloc(&board.visual_queue.point);
-    b_obj->id = id;
-    memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
-    b_obj->data.pt = pt;
-    b_obj->name_pos = pt;
+    BoardGeomObject *b_obj = board_vector_insert(&board.points, id);
+    b_obj->geom.pt = pt;
+    b_obj->name_pos = name_pos;
+    b_obj->selected = false;
     b_obj->color = obj->color;
+    memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
     break;
   }
   case CIRCLE: {
@@ -216,15 +295,16 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
     const float cy = graph_get_value(args[1]);
     const Vec2 center = xform_to_board(cx, cy);
     const float radius = graph_get_value(args[2]) * board.xform_scale;
+    const Vec2 name_pos = {center.x + radius / 1.414f + 2,
+                           center.y + radius / 1.414f + 2};
 
-    BoardGeomObject *b_obj = board_queue_alloc(&board.visual_queue.circle);
-    b_obj->id = id;
-    memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
-    b_obj->data.cr.center = center;
-    b_obj->data.cr.radius = radius;
-    b_obj->name_pos =
-        (Vec2){center.x + radius / 1.414f, center.y + radius / 1.414f};
+    BoardGeomObject *b_obj = board_vector_insert(&board.circles, id);
+    b_obj->geom.cr.center = center;
+    b_obj->geom.cr.radius = radius;
+    b_obj->name_pos = name_pos;
+    b_obj->selected = false;
     b_obj->color = obj->color;
+    memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
     break;
   }
   default: {
@@ -235,14 +315,16 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
     const float t2 = graph_get_value(args[4]);
     const Vec2 pt1 = xform_to_board(nx * dd + ny * t1, ny * dd - nx * t1);
     const Vec2 pt2 = xform_to_board(nx * dd + ny * t2, ny * dd - nx * t2);
+    const Vec2 name_pos = {(pt1.x + pt2.x) / 2.f + 2,
+                           (pt1.y + pt2.y) / 2.f + 2};
 
-    BoardGeomObject *b_obj = board_queue_alloc(&board.visual_queue.line);
-    b_obj->id = id;
-    memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
-    b_obj->data.ln.pt1 = pt1;
-    b_obj->data.ln.pt2 = pt2;
-    b_obj->name_pos = (Vec2){(pt1.x + pt2.x) / 2.f, (pt1.y + pt2.y) / 2.f};
+    BoardGeomObject *b_obj = board_vector_insert(&board.lines, id);
+    b_obj->geom.ln.pt1 = pt1;
+    b_obj->geom.ln.pt2 = pt2;
+    b_obj->name_pos = name_pos;
+    b_obj->selected = false;
     b_obj->color = obj->color;
+    memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
   }
   }
 }

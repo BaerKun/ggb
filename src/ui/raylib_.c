@@ -26,6 +26,8 @@ void rl_draw_line_v(Vector2 start, Vector2 end, Color color) { DrawLineV(start, 
 void rl_draw_line_ex(Vector2 start, Vector2 end, float thick, Color color) { DrawLineEx(start, end, thick, color); }
 void rl_draw_circle_v(Vector2 center, float radius, Color color) { DrawCircleV(center, radius, color); }
 void rl_draw_circle_lines_v(Vector2 center, float radius, Color color) {DrawCircleLinesV(center, radius, color); }
+void rl_draw_ring(Vector2 center, float inner_radius, float outer_radius, float start_angle, float end_angle, int segments, Color color) { DrawRing(center, inner_radius, outer_radius, start_angle, end_angle, segments, color); }
+void rl_draw_ring_lines(Vector2 center, float inner_radius, float outer_radius, float start_angle, float end_angle, int segments, Color color) { DrawRingLines(center, inner_radius, outer_radius, start_angle, end_angle, segments, color); }
 void rl_draw_rectangle(int x, int y, int width, int height, Color color) { DrawRectangle(x, y, width, height, color); }
 void rl_draw_rectangle_v(Vector2 pos, Vector2 size, Color color) { DrawRectangleV(pos, size, color); }
 void rl_draw_rectangle_rec(Rectangle rec, Color color) { DrawRectangleRec(rec, color); }

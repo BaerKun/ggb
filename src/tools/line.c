@@ -4,8 +4,9 @@
 
 static struct {
   int n;
+  GeomId first;
   GeomId inputs[4];
-} internal;
+} internal = {0, -1};
 
 static void line_eval(const float xyxy[4], float *line[3]) {
   const float x1 = xyxy[0];
@@ -32,15 +33,18 @@ static void clip_end_point(const float inputs[4], float *t[1]) {
   *t[0] = ny * px - nx * py; // (ny, -nx) · (px, py)
 }
 
-static void line_init() {
-  internal.n = 0;
+static void line_reset() {
+  if (internal.first != -1) {
+    board_deselect_object(internal.first);
+    internal.n = 0;
+    internal.first = -1;
+  }
 }
 
 static void line_ctrl(const Vec2 pos, const MouseEvent event) {
   if (event != MOUSE_PRESS) return;
 
-  const GeomId id = select_point(pos, internal.inputs + internal.n * 2);
-  if (id == -1) create_point(pos, internal.inputs + internal.n * 2);
+  const GeomId pt = find_or_create_point(pos, internal.inputs + internal.n * 2);
   if (++internal.n == 2) {
     GeomId args[5];
     args[0] = graph_add_value(0);
@@ -49,14 +53,16 @@ static void line_ctrl(const Vec2 pos, const MouseEvent event) {
     args[3] = graph_add_value(-HUGE_VALUE);
     args[4] = graph_add_value(HUGE_VALUE);
     graph_add_constraint(4, internal.inputs, 3, args, line_eval);
-    object_create(LINE, args);
-    board_update_buffer();
-    internal.n = 0;
+    board_add_object(object_create(LINE, args));
+    line_reset();
+  } else {
+    internal.first = pt;
+    board_select_object(pt);
   }
 }
 
 void tool_line(GeomTool *tool) {
   tool->usage = "line: select two points or positions";
-  tool->init = line_init;
   tool->ctrl = line_ctrl;
+  tool->reset = line_reset;
 }

@@ -4,8 +4,9 @@
 
 static struct {
   int n;
+  GeomId points[2];
   GeomId inputs[6];
-} internal;
+} internal = {0};
 
 static void circum_eval(const float inputs[6], float *outputs[3]) {
   const float x1 = inputs[0], y1 = inputs[1];
@@ -28,29 +29,40 @@ static void circum_eval(const float inputs[6], float *outputs[3]) {
   *outputs[2] = sqrtf(rx * rx + ry * ry);
 }
 
-static void circum_init() {
-  internal.n = 0;
+static void circum_reset() {
+  switch (internal.n) {
+  case 2:
+    board_deselect_object(internal.points[1]);
+    internal.points[1] = -1;
+  case 1:
+    board_deselect_object(internal.points[0]);
+    internal.points[0] = -1;
+    internal.n = 0;
+  default:
+    break;
+  }
 }
 
 static void circum_ctrl(const Vec2 pos, const MouseEvent event) {
   if (event != MOUSE_PRESS) return;
 
-  const GeomId id = select_point(pos, internal.inputs + internal.n * 2);
-  if (id == -1) create_point(pos, internal.inputs + internal.n * 2);
-  if (++internal.n == 3) {
+  const GeomId pt = find_or_create_point(pos, internal.inputs + internal.n * 2);
+  if (internal.n + 1 == 3) {
     GeomId args[3];
     args[0] = graph_add_value(0);
     args[1] = graph_add_value(0);
     args[2] = graph_add_value(0);
     graph_add_constraint(6, internal.inputs, 3, args, circum_eval);
-    object_create(CIRCLE, args);
-    board_update_buffer();
-    internal.n = 0;
+    board_add_object(object_create(CIRCLE, args));
+    circum_reset();
+  } else {
+    internal.points[internal.n++] = pt;
+    board_select_object(pt);
   }
 }
 
 void tool_circum(GeomTool *tool) {
   tool->usage = "circumcircle: select three points";
-  tool->init = circum_init;
   tool->ctrl = circum_ctrl;
+  tool->reset = circum_reset;
 }

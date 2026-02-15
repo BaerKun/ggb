@@ -48,8 +48,8 @@ void toolbar_listen() {
   const int border = x % (TOOL_ICON_BORDER_X + TOOL_ICON_SIZE);
   if (count >= TOOL_COUNT || border < TOOL_ICON_BORDER_X) return;
 
+  if (toolbar.selected && toolbar.selected->reset) toolbar.selected->reset();
   toolbar.selected = toolbar.tools + count;
-  if (toolbar.selected->init) toolbar.selected->init();
   board_set_control(toolbar.selected->ctrl);
 }
 

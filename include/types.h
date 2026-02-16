@@ -25,8 +25,8 @@ typedef struct Color {
 typedef enum {
   UNKNOWN = 0,
   POINT = 1,
-  CIRCLE = 2,
-  LINE = 4,
+  LINE = 2,
+  CIRCLE = 4,
   ANY = 7
 } ObjectType;
 

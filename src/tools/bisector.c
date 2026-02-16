@@ -27,11 +27,7 @@ static void bisector_ccw_eval(const float inputs[6], float *outputs[3]) {
 
 static GeomId create_bisector_ccw(const GeomId inputs[6]) {
   GeomId args[5];
-  args[0] = graph_add_value(0);
-  args[1] = graph_add_value(0);
-  args[2] = graph_add_value(0);
-  args[3] = graph_add_value(-HUGE_VALUE);
-  args[4] = graph_add_value(HUGE_VALUE);
+  init_line(args);
   graph_add_constraint(6, inputs, 3, args, bisector_ccw_eval);
   return object_create(LINE, args);
 }
@@ -42,13 +38,11 @@ static GeomId create_bisector_cw(const GeomId inputs[6]) {
   return create_bisector_ccw(inputs2);
 }
 
-static GeomId select_line(const Vec2 pos, GeomId *args) {
+static GeomId find_line(const Vec2 pos, GeomId *args) {
   const GeomId id = board_find_object(LINE, pos);
   if (id != -1) {
     const GeomObject *obj = object_get(id);
-    args[0] = obj->args[0];
-    args[1] = obj->args[1];
-    args[2] = obj->args[2];
+    copy_args(args, obj->args, 3);
   }
   return id;
 }
@@ -64,7 +58,7 @@ static void bisector_reset() {
 static void bisector_ctrl(const Vec2 pos, const MouseEvent event) {
   if (event != MOUSE_PRESS) return;
 
-  const GeomId line = select_line(pos, internal.inputs + internal.n * 3);
+  const GeomId line = find_line(pos, internal.inputs + internal.n * 3);
   if (line == -1) return;
 
   if (++internal.n == 2) {

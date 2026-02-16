@@ -37,13 +37,11 @@ static void perp_ctrl(const Vec2 pos, const MouseEvent event) {
     } else {
       const GeomObject *obj = object_get(id);
       if (obj->type == LINE) {
-        internal.inputs[0] = obj->args[0];
-        internal.inputs[1] = obj->args[1];
         internal.first_t = LINE;
+        copy_args(internal.inputs, obj->args, 2);
       } else {
-        internal.inputs[2] = obj->args[0];
-        internal.inputs[3] = obj->args[1];
         internal.first_t = POINT;
+        copy_args(internal.inputs + 2, obj->args, 2);
       }
     }
     internal.first_id = id;
@@ -55,19 +53,14 @@ static void perp_ctrl(const Vec2 pos, const MouseEvent event) {
     id = board_find_object(LINE, pos);
     if (id != -1) {
       const GeomObject *obj = object_get(id);
-      internal.inputs[0] = obj->args[0];
-      internal.inputs[1] = obj->args[1];
+      copy_args(internal.inputs, obj->args, 2);
     }
   } else {
     find_or_create_point(pos, internal.inputs + 2);
   }
 
   GeomId args[5];
-  args[0] = graph_add_value(0);
-  args[1] = graph_add_value(0);
-  args[2] = graph_add_value(0);
-  args[3] = graph_add_value(-HUGE_VALUE);
-  args[4] = graph_add_value(HUGE_VALUE);
+  init_line(args);
   graph_add_constraint(4, internal.inputs, 3, args, perp_eval);
   board_add_object(object_create(LINE, args));
   perp_reset();

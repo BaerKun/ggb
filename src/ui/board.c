@@ -45,7 +45,6 @@ static struct {
   GeomSize objects_size;
   BoardGeomObject *objects;
   BoardGeomVector points, lines, circles;
-  BoardGeomVector selected;
 } board;
 
 static const Color selected_color = RED;

@@ -4,9 +4,10 @@
 
 typedef void (*ToolInit)(GeomTool *);
 
-ToolInit tool_init[] = {tool_point, tool_line,     tool_circle,   tool_midpoint,
-                        tool_perp,  tool_parallel, tool_bisector, tool_circum,
-                        tool_isect, tool_delete};
+ToolInit tool_init[] = {tool_point,    tool_line,    tool_circle,
+                        tool_midpoint, tool_perp,    tool_parallel,
+                        tool_bisector, tool_tangent, tool_circum,
+                        tool_isect,    tool_delete};
 
 #define TOOL_COUNT (sizeof(tool_init) / sizeof(ToolInit))
 #define TOOL_ICON_SIZE 32

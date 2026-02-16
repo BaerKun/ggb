@@ -47,11 +47,7 @@ static void line_ctrl(const Vec2 pos, const MouseEvent event) {
   const GeomId pt = find_or_create_point(pos, internal.inputs + internal.n * 2);
   if (++internal.n == 2) {
     GeomId args[5];
-    args[0] = graph_add_value(0);
-    args[1] = graph_add_value(0);
-    args[2] = graph_add_value(0);
-    args[3] = graph_add_value(-HUGE_VALUE);
-    args[4] = graph_add_value(HUGE_VALUE);
+    init_line(args);
     graph_add_constraint(4, internal.inputs, 3, args, line_eval);
     board_add_object(object_create(LINE, args));
     line_reset();

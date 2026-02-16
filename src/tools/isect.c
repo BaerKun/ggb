@@ -28,19 +28,13 @@ static void isect_line_circle(const float inputs[6], float *outputs[4]) {
   const float cx = inputs[3];
   const float cy = inputs[4];
   const float r = inputs[5];
-  const float cross = nx * cy - ny * cx;
-  const float tmp = nx * cx + ny * cy - dd;
-  const float B = 2 * cross;
-  const float C = cross * cross + (tmp + r) * (tmp - r);
-  const float delta = B * B - 4 * C;
-  if (delta < EPS) return;
-  const float sqrt_delta = sqrtf(delta);
-  const float t1 = (-B + sqrt_delta) / 2.f;
-  const float t2 = (-B - sqrt_delta) / 2.f;
-  *outputs[0] = nx * dd + ny * t1;
-  *outputs[1] = ny * dd - nx * t1;
-  *outputs[2] = nx * dd + ny * t2;
-  *outputs[3] = ny * dd - nx * t2;
+  const float A = dd - nx * cx - ny * cy;
+  if (fabsf(A) > r + EPS) return;
+  const float B = sqrtf(fmaxf(r * r - A * A, 0));
+  *outputs[0] = A * nx - B * ny + cx;
+  *outputs[1] = A * ny + B * nx + cy;
+  *outputs[2] = A * nx + B * ny + cx;
+  *outputs[3] = A * ny - B * nx + cy;
 }
 
 static void isect_circle_circle(const float inputs[6], float *outputs[4]) {
@@ -66,12 +60,6 @@ static void isect_circle_circle(const float inputs[6], float *outputs[4]) {
   *outputs[3] = py + h * ux;
 }
 
-static void args_copy3(GeomId dst[3], const GeomId src[3]) {
-  dst[0] = src[0];
-  dst[1] = src[1];
-  dst[2] = src[2];
-}
-
 static void isect_reset() {
   if (internal.first_id != -1) {
     board_deselect_object(internal.first_id);
@@ -89,10 +77,10 @@ static void isect_ctrl(const Vec2 pos, const MouseEvent event) {
   const GeomObject *obj = object_get(id);
   if (internal.first_id == -1) {
     if (obj->type == LINE) {
-      args_copy3(internal.inputs, obj->args);
+      copy_args(internal.inputs, obj->args, 3);
       internal.first_t = LINE;
     } else {
-      args_copy3(internal.inputs + 3, obj->args);
+      copy_args(internal.inputs + 3, obj->args, 3);
       internal.first_t = CIRCLE;
     }
     internal.first_id = id;
@@ -105,7 +93,7 @@ static void isect_ctrl(const Vec2 pos, const MouseEvent event) {
   args[1] = graph_add_value(0);
 
   if (internal.first_t == LINE) {
-    args_copy3(internal.inputs + 3, obj->args);
+    copy_args(internal.inputs + 3, obj->args, 3);
     if (obj->type == LINE) {
       graph_add_constraint(6, internal.inputs, 2, args, isect_line_line);
       board_add_object(object_create(POINT, args));
@@ -122,7 +110,7 @@ static void isect_ctrl(const Vec2 pos, const MouseEvent event) {
 
   args[2] = graph_add_value(0);
   args[3] = graph_add_value(0);
-  args_copy3(internal.inputs, obj->args);
+  copy_args(internal.inputs, obj->args, 3);
   if (obj->type == LINE) {
     graph_add_constraint(6, internal.inputs, 4, args, isect_line_circle);
   } else {

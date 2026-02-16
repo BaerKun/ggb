@@ -10,7 +10,7 @@ typedef struct {
   GeomObject *data;
 } GeomSparseArray;
 
-static const GeomSize type_argc[] = {0, 2, 3, 0, 5};
+static const GeomSize type_argc[] = {0, 2, 5, 0, 3};
 static const Color type_color[] = {
     {}, {0, 82, 172, 255}, {130, 130, 130, 255}, {}, {130, 130, 130, 255}};
 static struct {

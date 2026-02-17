@@ -7,7 +7,7 @@ static struct {
   GeomId inputs[4];
 } internal = {UNKNOWN, -1};
 
-static void perp_eval(const float inputs[4], float *output[3]) {
+static bool perp_eval(const float inputs[4], float *output[3]) {
   const float nx = inputs[0];
   const float ny = inputs[1];
   const float px = inputs[2];
@@ -15,6 +15,7 @@ static void perp_eval(const float inputs[4], float *output[3]) {
   *output[0] = -ny;
   *output[1] = nx;
   *output[2] = -ny * px + nx * py; // np · (px, py)
+  return true;
 }
 
 static void perp_reset() {

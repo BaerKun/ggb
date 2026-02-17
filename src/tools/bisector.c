@@ -8,7 +8,8 @@ static struct {
   GeomId inputs[6];
 } internal = {0, -1};
 
-static void bisector_ccw_eval(const float inputs[6], float *outputs[3]) {
+// TODO: 直线重合时返回false
+static bool bisector_ccw_eval(const float inputs[6], float *outputs[3]) {
   const float nx1 = inputs[0];
   const float ny1 = inputs[1];
   const float dd1 = inputs[2];
@@ -23,6 +24,7 @@ static void bisector_ccw_eval(const float inputs[6], float *outputs[3]) {
   *outputs[0] = nx / norm;
   *outputs[1] = ny / norm;
   *outputs[2] = dd / norm;
+  return true;
 }
 
 static GeomId create_bisector_ccw(const GeomId inputs[6]) {

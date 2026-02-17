@@ -6,7 +6,6 @@
 typedef struct {
   char name[8];
   ObjectType type;
-  bool visible;
   Color color;
   GeomId args[5];
 } GeomObject;

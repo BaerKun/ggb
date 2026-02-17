@@ -8,10 +8,11 @@ static struct {
   GeomId inputs[4];
 } internal = {0, -1};
 
-static void circle_point_eval(const float xyxy[4], float *radius[1]) {
+static bool circle_point_eval(const float xyxy[4], float *radius[1]) {
   const float dx = xyxy[2] - xyxy[0];
   const float dy = xyxy[3] - xyxy[1];
   *radius[0] = sqrtf(dx * dx + dy * dy);
+  return true;
 }
 
 static void circle_reset() {

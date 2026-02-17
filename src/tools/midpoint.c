@@ -7,9 +7,10 @@ static struct {
   GeomId inputs[4];
 } internal = {0, -1};
 
-static void midpoint_eval(const float inputs[4], float *outputs[2]) {
+static bool midpoint_eval(const float inputs[4], float *outputs[2]) {
   *outputs[0] = (inputs[0] + inputs[2]) / 2.f;
   *outputs[1] = (inputs[1] + inputs[3]) / 2.f;
+  return true;
 }
 
 static void midpoint_reset() {

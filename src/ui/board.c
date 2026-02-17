@@ -21,6 +21,7 @@ typedef union {
 } BoardGeomData;
 
 typedef struct {
+  bool visible;
   bool selected;
   Color color;
   char name[8];
@@ -199,13 +200,7 @@ void board_remove_object(const GeomId id) {
 
 void board_select_object(const GeomId id) { board.objects[id].selected = true; }
 void board_deselect_object(const GeomId id) {
-  if (id == -1) {
-    for (GeomSize i = 0; i < board.objects_size; i++) {
-      board.objects[i].selected = false;
-    }
-  } else {
-    board.objects[id].selected = false;
-  }
+  board.objects[id].selected = false;
 }
 
 Vec2 xform_to_world(const Vec2 pos) {
@@ -224,9 +219,9 @@ Vec2 xform_to_world(const Vec2 pos) {
 static Vec2 xform_to_board(const float x, const float y) {
   const Vec2 scaled = {x * board.xform_scale, y * board.xform_scale};
   const Vec2 rotated = {
-    board.xform_rotate[0][0] * scaled.x + board.xform_rotate[0][1] * scaled.y,
-    board.xform_rotate[1][0] * scaled.x + board.xform_rotate[1][1] * scaled.y,
-};
+      board.xform_rotate[0][0] * scaled.x + board.xform_rotate[0][1] * scaled.y,
+      board.xform_rotate[1][0] * scaled.x + board.xform_rotate[1][1] * scaled.y,
+  };
   const Vec2 translated = {rotated.x + board.xform_translate.x,
                            rotated.y + board.xform_translate.y};
   return translated;
@@ -272,56 +267,76 @@ static float vec2_distance(const Vec2 v1, const Vec2 v2) {
 }
 
 static void get_board_buffer(const GeomId id, const GeomObject *obj) {
-  if (!obj->visible) return;
+#define check_value(v)                                                         \
+  if (isnan(v)) {                                                              \
+    b_obj->visible = false;                                                    \
+    return;                                                                    \
+  }
+
   const GeomId *args = obj->args;
   switch (obj->type) {
   case POINT: {
+    BoardGeomObject *b_obj = board_vector_insert(&board.points, id);
+
     const float x = graph_get_value(args[0]);
+    check_value(x);
     const float y = graph_get_value(args[1]);
+    check_value(y);
     const Vec2 pt = xform_to_board(x, y);
     const Vec2 name_pos = {pt.x + 4, pt.y + 4};
 
-    BoardGeomObject *b_obj = board_vector_insert(&board.points, id);
+    b_obj->visible = true;
+    b_obj->selected = false;
     b_obj->geom.pt = pt;
     b_obj->name_pos = name_pos;
-    b_obj->selected = false;
     b_obj->color = obj->color;
     memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
     break;
   }
   case CIRCLE: {
+    BoardGeomObject *b_obj = board_vector_insert(&board.circles, id);
     const float cx = graph_get_value(args[0]);
+    check_value(cx);
     const float cy = graph_get_value(args[1]);
+    check_value(cy);
+    const float r = graph_get_value(args[2]);
+    check_value(r);
     const Vec2 center = xform_to_board(cx, cy);
-    const float radius = graph_get_value(args[2]) * board.xform_scale;
+    const float radius = r * board.xform_scale;
     const Vec2 name_pos = {center.x + radius / 1.414f + 2,
                            center.y + radius / 1.414f + 2};
 
-    BoardGeomObject *b_obj = board_vector_insert(&board.circles, id);
+    b_obj->visible = true;
+    b_obj->selected = false;
     b_obj->geom.cr.center = center;
     b_obj->geom.cr.radius = radius;
     b_obj->name_pos = name_pos;
-    b_obj->selected = false;
     b_obj->color = obj->color;
     memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
     break;
   }
   default: {
+    BoardGeomObject *b_obj = board_vector_insert(&board.lines, id);
     const float nx = graph_get_value(args[0]);
+    check_value(nx);
     const float ny = graph_get_value(args[1]);
+    check_value(ny);
     const float dd = graph_get_value(args[2]);
+    check_value(dd);
     const float t1 = graph_get_value(args[3]);
+    check_value(t1);
     const float t2 = graph_get_value(args[4]);
+    check_value(t2);
     const Vec2 pt1 = xform_to_board(nx * dd + ny * t1, ny * dd - nx * t1);
     const Vec2 pt2 = xform_to_board(nx * dd + ny * t2, ny * dd - nx * t2);
     const Vec2 name_pos = {(pt1.x + pt2.x) / 2.f + 2,
                            (pt1.y + pt2.y) / 2.f + 2};
 
-    BoardGeomObject *b_obj = board_vector_insert(&board.lines, id);
+    b_obj->visible = true;
+    b_obj->selected = false;
     b_obj->geom.ln.pt1 = pt1;
     b_obj->geom.ln.pt2 = pt2;
     b_obj->name_pos = name_pos;
-    b_obj->selected = false;
     b_obj->color = obj->color;
     memcpy(b_obj->name, obj->name, sizeof(b_obj->name));
   }

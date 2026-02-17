@@ -54,7 +54,6 @@ GeomId object_create(const ObjectType type, const GeomId *args) {
   const GeomId id = object_alloc(type);
   GeomObject *obj = internal.objects.data + id;
   obj->type = type;
-  obj->visible = true;
 
   obj->color = type_color[type];
   for (int i = 0; i < type_argc[type]; i++) {

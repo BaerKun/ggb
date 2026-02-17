@@ -8,7 +8,7 @@ static struct {
   GeomId inputs[6];
 } internal = {UNKNOWN, -1};
 
-static void isect_line_line(const float inputs[6], float *outputs[2]) {
+static bool isect_line_line(const float inputs[6], float *outputs[2]) {
   const float nx1 = inputs[0];
   const float ny1 = inputs[1];
   const float dd1 = inputs[2];
@@ -16,12 +16,13 @@ static void isect_line_line(const float inputs[6], float *outputs[2]) {
   const float ny2 = inputs[4];
   const float dd2 = inputs[5];
   const float D = nx1 * ny2 - nx2 * ny1;
-  if (fabsf(D) < EPS) return;
+  if (fabsf(D) < EPS) return false;
   *outputs[0] = (ny2 * dd1 - ny1 * dd2) / D;
   *outputs[1] = (nx1 * dd2 - nx2 * dd1) / D;
+  return true;
 }
 
-static void isect_line_circle(const float inputs[6], float *outputs[4]) {
+static bool isect_line_circle(const float inputs[6], float *outputs[4]) {
   const float nx = inputs[0];
   const float ny = inputs[1];
   const float dd = inputs[2];
@@ -29,15 +30,16 @@ static void isect_line_circle(const float inputs[6], float *outputs[4]) {
   const float cy = inputs[4];
   const float r = inputs[5];
   const float A = dd - nx * cx - ny * cy;
-  if (fabsf(A) > r + EPS) return;
+  if (fabsf(A) > r * ( 1 + EPS)) return false;
   const float B = sqrtf(fmaxf(r * r - A * A, 0));
   *outputs[0] = A * nx - B * ny + cx;
   *outputs[1] = A * ny + B * nx + cy;
   *outputs[2] = A * nx + B * ny + cx;
   *outputs[3] = A * ny - B * nx + cy;
+  return true;
 }
 
-static void isect_circle_circle(const float inputs[6], float *outputs[4]) {
+static bool isect_circle_circle(const float inputs[6], float *outputs[4]) {
   const float x1 = inputs[0];
   const float y1 = inputs[1];
   const float r1 = inputs[2];
@@ -47,7 +49,7 @@ static void isect_circle_circle(const float inputs[6], float *outputs[4]) {
   const float dx = x2 - x1;
   const float dy = y2 - y1;
   const float d = sqrtf(dx * dx + dy * dy);
-  if (d > r1 + r2) return;
+  if (d > r1 + r2) return false;
   const float a = (d * d + r1 * r1 - r2 * r2) / (2 * d);
   const float h = sqrtf(r1 * r1 - a * a);
   const float ux = dx / d;
@@ -58,6 +60,7 @@ static void isect_circle_circle(const float inputs[6], float *outputs[4]) {
   *outputs[1] = py - h * ux;
   *outputs[2] = px - h * uy;
   *outputs[3] = py + h * ux;
+  return true;
 }
 
 static void isect_reset() {

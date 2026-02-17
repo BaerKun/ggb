@@ -8,7 +8,7 @@ static struct {
   GeomId inputs[6];
 } internal = {UNKNOWN, -1};
 
-static void tangent(const float *inputs, const float r1, const float r2, float *outputs[6]) {
+static bool tangent(const float *inputs, const float r1, const float r2, float *outputs[6]) {
   const float x1 = inputs[0];
   const float y1 = inputs[1];
   const float x2 = inputs[3];
@@ -18,7 +18,7 @@ static void tangent(const float *inputs, const float r1, const float r2, float *
   const float sr = r1 + r2;
   const float d2 = dx * dx + dy * dy;
   const float delta = d2 - sr * sr;
-  if (delta < 0) return;
+  if (delta < 0) return false;
   const float h = sqrtf(delta);
   const float nx1 = (dx * sr + dy * h) / d2;
   const float nx2 = (dx * sr - dy * h) / d2;
@@ -30,23 +30,24 @@ static void tangent(const float *inputs, const float r1, const float r2, float *
   *outputs[3] = nx2;
   *outputs[4] = ny2;
   *outputs[5] = nx2 * x2 + ny2 * y2 - r2;
+  return true;
 }
 
-static void tangent_circle_point(const float inputs[5], float *outputs[6]) {
+static bool tangent_circle_point(const float inputs[5], float *outputs[6]) {
   const float r = inputs[2];
-  tangent(inputs, r, 0, outputs);
+  return tangent(inputs, r, 0, outputs);
 }
 
-static void tangent_circles_inner(const float inputs[6], float *outputs[6]) {
+static bool tangent_circles_inner(const float inputs[6], float *outputs[6]) {
   const float r1 = inputs[2];
   const float r2 = inputs[5];
-  tangent(inputs, r1, -r2, outputs);
+  return tangent(inputs, r1, -r2, outputs);
 }
 
-static void tangent_circles_outer(const float inputs[6], float *outputs[6]) {
+static bool tangent_circles_outer(const float inputs[6], float *outputs[6]) {
   const float r1 = inputs[2];
   const float r2 = inputs[5];
-  tangent(inputs, r1, r2, outputs);
+  return tangent(inputs, r1, r2, outputs);
 }
 
 static void create_tangents_cp() {

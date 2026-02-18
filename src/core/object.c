@@ -44,16 +44,30 @@ void object_module_cleanup() {
 
 GeomObject *object_get(const GeomId id) { return internal.objects.data + id; }
 
-GeomId object_find(const char *name) {
-  return string_hash_find(&internal.hash, name);
+bool object_is_valid(const GeomId id) {
+  const GeomObject *obj = internal.objects.data + id;
+  switch (obj->type) {
+  case POINT:
+    return obj->define == -1 || graph_is_valid(obj->define, obj->inner);
+  case LINE:
+    if (!graph_is_valid(obj->define, obj->inner)) return false;
+    return graph_is_valid(obj->args[3], 0) && graph_is_valid(obj->args[4], 0);
+  default:
+    if (obj->define != -1) return graph_is_valid(obj->define, obj->inner);
+    return graph_is_valid(obj->args[0], 0) && graph_is_valid(obj->args[1], 0) &&
+           graph_is_valid(obj->args[2], 0);
+  }
 }
 
-GeomId object_create(const ObjectType type, const GeomId *args) {
+GeomId object_create(const ObjectType type, const GeomId *args,
+                     const GeomId define, const GeomId inner) {
   if (internal.objects.size == internal.objects.cap) object_module_resize();
 
   const GeomId id = object_alloc(type);
   GeomObject *obj = internal.objects.data + id;
   obj->type = type;
+  obj->define = define;
+  obj->inner = inner;
 
   obj->color = type_color[type];
   for (int i = 0; i < type_argc[type]; i++) {

@@ -7,7 +7,7 @@ static struct {
   GeomId inputs[4];
 } internal = {UNKNOWN, -1};
 
-static bool parallel_eval(const float inputs[4], float *outputs[3]) {
+static int parallel_eval(const float inputs[4], float *outputs[3]) {
   const float nx = inputs[0];
   const float ny = inputs[1];
   const float px = inputs[2];
@@ -15,7 +15,7 @@ static bool parallel_eval(const float inputs[4], float *outputs[3]) {
   *outputs[0] = nx;
   *outputs[1] = ny;
   *outputs[2] = nx * px + ny * py; // parallel line dd
-  return true;
+  return 1;
 }
 
 static void parallel_reset() {
@@ -62,10 +62,10 @@ static void parallel_ctrl(const Vec2 pos, const MouseEvent event) {
 
   GeomId args[5];
   init_line(args);
-  graph_add_constraint(4, internal.inputs, 3, args, parallel_eval);
-  board_add_object(object_create(LINE, args));
+  const GeomId define =
+      graph_add_constraint(4, internal.inputs, 3, args, parallel_eval);
+  board_add_object(object_create(LINE, args, define, 0));
   parallel_reset();
-
 }
 
 void tool_parallel(GeomTool *tool) {

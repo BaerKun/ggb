@@ -11,7 +11,7 @@ static void point_ctrl(const Vec2 pos, const MouseEvent event) {
   GeomId args[2];
   args[0] = graph_add_value(world_pos.x);
   args[1] = graph_add_value(world_pos.y);
-  board_add_object(object_create(POINT, args));
+  board_add_object(object_create(POINT, args, -1, -1));
 }
 
 void tool_point(GeomTool *tool) {

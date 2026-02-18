@@ -8,7 +8,7 @@ static struct {
   GeomId inputs[6];
 } internal = {UNKNOWN, -1};
 
-static bool isect_line_line(const float inputs[6], float *outputs[2]) {
+static int isect_line_line(const float inputs[6], float *outputs[2]) {
   const float nx1 = inputs[0];
   const float ny1 = inputs[1];
   const float dd1 = inputs[2];
@@ -16,13 +16,13 @@ static bool isect_line_line(const float inputs[6], float *outputs[2]) {
   const float ny2 = inputs[4];
   const float dd2 = inputs[5];
   const float D = nx1 * ny2 - nx2 * ny1;
-  if (fabsf(D) < EPS) return false;
+  if (fabsf(D) < EPS) return 0;
   *outputs[0] = (ny2 * dd1 - ny1 * dd2) / D;
   *outputs[1] = (nx1 * dd2 - nx2 * dd1) / D;
-  return true;
+  return 1;
 }
 
-static bool isect_line_circle(const float inputs[6], float *outputs[4]) {
+static int isect_line_circle(const float inputs[6], float *outputs[4]) {
   const float nx = inputs[0];
   const float ny = inputs[1];
   const float dd = inputs[2];
@@ -30,16 +30,25 @@ static bool isect_line_circle(const float inputs[6], float *outputs[4]) {
   const float cy = inputs[4];
   const float r = inputs[5];
   const float A = dd - nx * cx - ny * cy;
-  if (fabsf(A) > r * ( 1 + EPS)) return false;
-  const float B = sqrtf(fmaxf(r * r - A * A, 0));
+  if (fabsf(A) > r * (1 + EPS)) return 0;
+  if (fabsf(A) > r * (1 - EPS)) { // tangent
+    const float tx = A * nx + cx;
+    const float ty = A * ny + cy;
+    *outputs[0] = tx;
+    *outputs[1] = ty;
+    *outputs[2] = tx;
+    *outputs[3] = ty;
+    return 1;
+  }
+  const float B = sqrtf(r * r - A * A);
   *outputs[0] = A * nx - B * ny + cx;
   *outputs[1] = A * ny + B * nx + cy;
   *outputs[2] = A * nx + B * ny + cx;
   *outputs[3] = A * ny - B * nx + cy;
-  return true;
+  return 2;
 }
 
-static bool isect_circle_circle(const float inputs[6], float *outputs[4]) {
+static int isect_circle_circle(const float inputs[6], float *outputs[4]) {
   const float x1 = inputs[0];
   const float y1 = inputs[1];
   const float r1 = inputs[2];
@@ -49,18 +58,25 @@ static bool isect_circle_circle(const float inputs[6], float *outputs[4]) {
   const float dx = x2 - x1;
   const float dy = y2 - y1;
   const float d = sqrtf(dx * dx + dy * dy);
-  if (d > r1 + r2) return false;
+  if (d < EPS || d > (r1 + r2) * (1 + EPS)) return 0;
   const float a = (d * d + r1 * r1 - r2 * r2) / (2 * d);
-  const float h = sqrtf(r1 * r1 - a * a);
   const float ux = dx / d;
   const float uy = dy / d;
   const float px = x1 + a * ux;
   const float py = y1 + a * uy;
+  if (d > (r1 + r2) * (1 - EPS)) {
+    *outputs[0] = px;
+    *outputs[1] = py;
+    *outputs[2] = px;
+    *outputs[3] = py;
+    return 1;
+  }
+  const float h = sqrtf(r1 * r1 - a * a);
   *outputs[0] = px + h * uy;
   *outputs[1] = py - h * ux;
   *outputs[2] = px - h * uy;
   *outputs[3] = py + h * ux;
-  return true;
+  return 2;
 }
 
 static void isect_reset() {
@@ -98,14 +114,16 @@ static void isect_ctrl(const Vec2 pos, const MouseEvent event) {
   if (internal.first_t == LINE) {
     copy_args(internal.inputs + 3, obj->args, 3);
     if (obj->type == LINE) {
-      graph_add_constraint(6, internal.inputs, 2, args, isect_line_line);
-      board_add_object(object_create(POINT, args));
+      const GeomId define =
+          graph_add_constraint(6, internal.inputs, 2, args, isect_line_line);
+      board_add_object(object_create(POINT, args, define, 0));
     } else {
       args[2] = graph_add_value(0);
       args[3] = graph_add_value(0);
-      graph_add_constraint(6, internal.inputs, 4, args, isect_line_circle);
-      board_add_object(object_create(POINT, args));
-      board_add_object(object_create(POINT, args + 2));
+      const GeomId define =
+          graph_add_constraint(6, internal.inputs, 4, args, isect_line_circle);
+      board_add_object(object_create(POINT, args, define, 0));
+      board_add_object(object_create(POINT, args + 2, define, 1));
     }
     isect_reset();
     return;
@@ -114,13 +132,12 @@ static void isect_ctrl(const Vec2 pos, const MouseEvent event) {
   args[2] = graph_add_value(0);
   args[3] = graph_add_value(0);
   copy_args(internal.inputs, obj->args, 3);
-  if (obj->type == LINE) {
-    graph_add_constraint(6, internal.inputs, 4, args, isect_line_circle);
-  } else {
-    graph_add_constraint(6, internal.inputs, 4, args, isect_circle_circle);
-  }
-  board_add_object(object_create(POINT, args));
-  board_add_object(object_create(POINT, args + 2));
+  const GeomId define = graph_add_constraint(
+      6, internal.inputs, 4, args,
+      obj->type == LINE ? isect_line_circle : isect_circle_circle);
+
+  board_add_object(object_create(POINT, args, define, 0));
+  board_add_object(object_create(POINT, args + 2, define, 1));
   isect_reset();
 }
 

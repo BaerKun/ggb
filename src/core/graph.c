@@ -10,8 +10,8 @@ typedef enum { NODE_VALUE = 1, NODE_COMPUTE = 2, NODE_BOTH = 3 } NodeType;
 
 typedef struct {
   NodeType type;
-  bool invalid;
   float value;
+  int soln_count; // solution count
   GeomInt ref_count;
 
   bool scheduled;
@@ -70,7 +70,7 @@ GeomId graph_add_value(const float value) {
   const GeomId id = (GeomId)cgraphAddVert(&internal.graph);
   GraphNode *node = internal.nodes + id;
   node->type = NODE_VALUE;
-  node->invalid = false;
+  node->soln_count = 1;
   node->value = value;
   node->ref_count = 0;
   node->scheduled = false;
@@ -88,14 +88,15 @@ static void graph_combine(const GeomId id, const GeomSize input_size,
   float input_values[6], *output_value = &node->value;
   graph_link_inputs(id, input_size, inputs, input_values);
 
-  if (!eval(input_values, &output_value)) node->invalid = true;
+  node->soln_count = eval(input_values, &output_value);
 }
 
-void graph_add_constraint(const GeomSize input_size, const GeomId *inputs,
-                          const GeomSize output_size, const GeomId *outputs,
-                          const ValueEval eval) {
+GeomId graph_add_constraint(const GeomSize input_size, const GeomId *inputs,
+                            const GeomSize output_size, const GeomId *outputs,
+                            const ValueEval eval) {
   if (output_size == 1) {
-    return graph_combine(outputs[0], input_size, inputs, eval);
+    graph_combine(outputs[0], input_size, inputs, eval);
+    return outputs[0];
   }
 
   const GeomId node_id = (GeomId)cgraphAddVert(&internal.graph);
@@ -116,22 +117,22 @@ void graph_add_constraint(const GeomSize input_size, const GeomId *inputs,
     output_values[i] = &internal.nodes[output_id].value;
   }
 
-  if (!eval(input_values, output_values)) {
+  node->soln_count = eval(input_values, output_values);
+  if (node->soln_count == 0) {
     for (GeomSize i = 0; i < output_size; i++) {
-      internal.nodes[outputs[i]].invalid = true;
+      internal.nodes[outputs[i]].soln_count = 0;
     }
   }
+  return node_id;
 }
 
-float graph_get_value(const GeomId id) {
-  const GraphNode *node = internal.nodes + id;
-  if (node->invalid) return NAN;
-  return node->value;
+float graph_get_value(const GeomId id) { return internal.nodes[id].value; }
+
+bool graph_is_valid(const GeomId id, const GeomId inner) {
+  return inner < internal.nodes[id].soln_count;
 }
 
-void graph_ref_value(const GeomId id) {
-  if (id >= 0) internal.nodes[id].ref_count++;
-}
+void graph_ref_value(const GeomId id) { internal.nodes[id].ref_count++; }
 
 void graph_unref_value(const GeomSize count, const GeomId *ids) {
   queue_clear(&internal.queue);
@@ -172,7 +173,6 @@ void graph_change_value(const GeomSize count, const GeomId *ids,
   while (!queue_empty(queue)) {
     const GeomId id = dequeue(queue);
     GraphNode *node = internal.nodes + id;
-    node->invalid = false;
     node->scheduled = false;
 
     CGraphId eid, to;
@@ -190,7 +190,8 @@ void graph_change_value(const GeomSize count, const GeomId *ids,
         out_size++;
       }
 
-      if (!node->eval(inputs, outputs)) {
+      node->soln_count = node->eval(inputs, outputs);
+      if (node->soln_count == 0) {
         queue->elems[invalid_size++] = id;
         break;
       }
@@ -208,6 +209,7 @@ void graph_change_value(const GeomSize count, const GeomId *ids,
     }
       // no break
     case NODE_VALUE:
+      node->soln_count = 1;
       while (cgraphIterNextEdge(iter, id, &eid, &to)) {
         if (!internal.nodes[to].scheduled) {
           internal.nodes[to].scheduled = true;
@@ -268,7 +270,7 @@ static void graph_spread_invalid(Queue *queue, CGraphIter *iter) {
   while (!queue_empty(queue)) {
     const GeomId id = dequeue(queue);
     GraphNode *node = internal.nodes + id;
-    node->invalid = true;
+    node->soln_count = 0;
     node->scheduled = false;
 
     CGraphId eid, to;

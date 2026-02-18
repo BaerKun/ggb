@@ -8,11 +8,11 @@ static struct {
   GeomId inputs[4];
 } internal = {0, -1};
 
-static bool circle_point_eval(const float xyxy[4], float *radius[1]) {
+static int circle_point_eval(const float xyxy[4], float *radius[1]) {
   const float dx = xyxy[2] - xyxy[0];
   const float dy = xyxy[3] - xyxy[1];
   *radius[0] = sqrtf(dx * dx + dy * dy);
-  return true;
+  return 1;
 }
 
 static void circle_reset() {
@@ -33,7 +33,7 @@ static void circle_ctrl(const Vec2 pos, const MouseEvent event) {
     args[1] = internal.inputs[1];
     args[2] = graph_add_value(0);
     graph_add_constraint(4, internal.inputs, 1, args + 2, circle_point_eval);
-    board_add_object(object_create(CIRCLE, args));
+    board_add_object(object_create(CIRCLE, args, -1, -1));
     circle_reset();
   } else {
     internal.center = id;

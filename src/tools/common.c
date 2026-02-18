@@ -18,7 +18,7 @@ GeomId create_point(const Vec2 pos, GeomId xy[2]) {
   const Vec2 world = xform_to_world(pos);
   xy[0] = graph_add_value(world.x);
   xy[1] = graph_add_value(world.y);
-  const GeomId id = object_create(POINT, xy);
+  const GeomId id = object_create(POINT, xy, -1, -1);
   board_add_object(id);
   return id;
 }

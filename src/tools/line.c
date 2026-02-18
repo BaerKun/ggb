@@ -8,7 +8,7 @@ static struct {
   GeomId inputs[4];
 } internal = {0, -1};
 
-static bool line_eval(const float xyxy[4], float *line[3]) {
+static int line_eval(const float xyxy[4], float *line[3]) {
   const float x1 = xyxy[0];
   const float y1 = xyxy[1];
   const float x2 = xyxy[2];
@@ -16,23 +16,23 @@ static bool line_eval(const float xyxy[4], float *line[3]) {
   const float dx = x2 - x1;
   const float dy = y2 - y1;
   const float dist = sqrtf(dx * dx + dy * dy);
-  if (dist < EPS) return false;
+  if (dist < EPS) return 0;
 
   const float nx = -dy / dist;
   const float ny = dx / dist;
   *line[0] = nx;
   *line[1] = ny;
   *line[2] = nx * x1 + ny * y1; // dd = n · (x, y)
-  return true;
+  return 1;
 }
 
-static bool clip_end_point(const float inputs[4], float *t[1]) {
+static int clip_end_point(const float inputs[4], float *t[1]) {
   const float nx = inputs[0];
   const float ny = inputs[1];
   const float px = inputs[2];
   const float py = inputs[3];
   *t[0] = ny * px - nx * py; // (ny, -nx) · (px, py)
-  return true;
+  return 1;
 }
 
 static void line_reset() {
@@ -50,8 +50,9 @@ static void line_ctrl(const Vec2 pos, const MouseEvent event) {
   if (++internal.n == 2) {
     GeomId args[5];
     init_line(args);
-    graph_add_constraint(4, internal.inputs, 3, args, line_eval);
-    board_add_object(object_create(LINE, args));
+    const GeomId define =
+        graph_add_constraint(4, internal.inputs, 3, args, line_eval);
+    board_add_object(object_create(LINE, args, define, 0));
     line_reset();
   } else {
     internal.first = pt;

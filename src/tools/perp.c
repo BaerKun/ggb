@@ -7,7 +7,7 @@ static struct {
   GeomId inputs[4];
 } internal = {UNKNOWN, -1};
 
-static bool perp_eval(const float inputs[4], float *output[3]) {
+static int perp_eval(const float inputs[4], float *output[3]) {
   const float nx = inputs[0];
   const float ny = inputs[1];
   const float px = inputs[2];
@@ -15,11 +15,11 @@ static bool perp_eval(const float inputs[4], float *output[3]) {
   *output[0] = -ny;
   *output[1] = nx;
   *output[2] = -ny * px + nx * py; // np · (px, py)
-  return true;
+  return 1;
 }
 
 static void perp_reset() {
-  if (internal.first_id != -1){
+  if (internal.first_id != -1) {
     board_deselect_object(internal.first_id);
     internal.first_t = UNKNOWN;
     internal.first_id = -1;
@@ -52,18 +52,18 @@ static void perp_ctrl(const Vec2 pos, const MouseEvent event) {
 
   if (internal.first_t == POINT) {
     id = board_find_object(LINE, pos);
-    if (id != -1) {
-      const GeomObject *obj = object_get(id);
-      copy_args(internal.inputs, obj->args, 2);
-    }
-  } else {
-    find_or_create_point(pos, internal.inputs + 2);
+    if (id == -1) return;
+    const GeomObject *obj = object_get(id);
+    copy_args(internal.inputs, obj->args, 2);
   }
+
+  find_or_create_point(pos, internal.inputs + 2);
 
   GeomId args[5];
   init_line(args);
-  graph_add_constraint(4, internal.inputs, 3, args, perp_eval);
-  board_add_object(object_create(LINE, args));
+  const GeomId define =
+      graph_add_constraint(4, internal.inputs, 3, args, perp_eval);
+  board_add_object(object_create(LINE, args, define, 0));
   perp_reset();
 }
 

@@ -7,14 +7,14 @@ static struct {
   GeomId inputs[4];
 } internal = {0, -1};
 
-static bool midpoint_eval(const float inputs[4], float *outputs[2]) {
+static int midpoint_eval(const float inputs[4], float *outputs[2]) {
   *outputs[0] = (inputs[0] + inputs[2]) / 2.f;
   *outputs[1] = (inputs[1] + inputs[3]) / 2.f;
-  return true;
+  return 1;
 }
 
 static void midpoint_reset() {
-  if (internal.first != -1){
+  if (internal.first != -1) {
     board_deselect_object(internal.first);
     internal.n = 0;
     internal.first = -1;
@@ -29,8 +29,9 @@ static void midpoint_ctrl(const Vec2 pos, const MouseEvent event) {
     GeomId args[2];
     args[0] = graph_add_value(0);
     args[1] = graph_add_value(0);
-    graph_add_constraint(4, internal.inputs, 2, args, midpoint_eval);
-    board_add_object(object_create(POINT, args));
+    const GeomId define =
+        graph_add_constraint(4, internal.inputs, 2, args, midpoint_eval);
+    board_add_object(object_create(POINT, args, define, 0));
     midpoint_reset();
   } else {
     internal.first = pt;

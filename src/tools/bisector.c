@@ -8,8 +8,7 @@ static struct {
   GeomId inputs[6];
 } internal = {0, -1};
 
-// TODO: 直线重合时返回false
-static bool bisector_ccw_eval(const float inputs[6], float *outputs[3]) {
+static int bisector_eval(const float inputs[6], float *outputs[6]) {
   const float nx1 = inputs[0];
   const float ny1 = inputs[1];
   const float dd1 = inputs[2];
@@ -17,27 +16,22 @@ static bool bisector_ccw_eval(const float inputs[6], float *outputs[3]) {
   const float ny2 = inputs[4];
   const float dd2 = inputs[5];
   const float cross = nx1 * ny2 - ny1 * nx2;
-  const float nx = cross > 0 ? nx1 + nx2 : nx1 - nx2;
-  const float ny = cross > 0 ? ny1 + ny2 : ny1 - ny2;
-  const float dd = cross > 0 ? dd1 + dd2 : dd1 - dd2;
-  const float norm = sqrtf(nx * nx + ny * ny);
-  *outputs[0] = nx / norm;
-  *outputs[1] = ny / norm;
-  *outputs[2] = dd / norm;
-  return true;
-}
-
-static GeomId create_bisector_ccw(const GeomId inputs[6]) {
-  GeomId args[5];
-  init_line(args);
-  graph_add_constraint(6, inputs, 3, args, bisector_ccw_eval);
-  return object_create(LINE, args);
-}
-
-static GeomId create_bisector_cw(const GeomId inputs[6]) {
-  const GeomId inputs2[6] = {inputs[3], inputs[4], inputs[5],
-                             inputs[0], inputs[1], inputs[2]};
-  return create_bisector_ccw(inputs2);
+  if (fabsf(cross) < EPS) return 0;
+  const float o_nx1 = nx1 + nx2;
+  const float o_ny1 = ny1 + ny2;
+  const float o_dd1 = dd1 + dd2;
+  const float o_nx2 = nx1 - nx2;
+  const float o_ny2 = ny1 - ny2;
+  const float o_dd2 = dd1 - dd2;
+  const float norm1 = sqrtf(o_nx1 * o_nx1 + o_ny1 * o_ny1);
+  const float norm2 = sqrtf(o_nx2 * o_nx2 + o_ny2 * o_ny2);
+  *outputs[0] = o_nx1 / norm1;
+  *outputs[1] = o_ny1 / norm1;
+  *outputs[2] = o_dd1 / norm1;
+  *outputs[3] = o_nx2 / norm2;
+  *outputs[4] = o_ny2 / norm2;
+  *outputs[5] = o_dd2 / norm2;
+  return 2;
 }
 
 static GeomId find_line(const Vec2 pos, GeomId *args) {
@@ -64,8 +58,14 @@ static void bisector_ctrl(const Vec2 pos, const MouseEvent event) {
   if (line == -1) return;
 
   if (++internal.n == 2) {
-    board_add_object(create_bisector_ccw(internal.inputs));
-    board_add_object(create_bisector_cw(internal.inputs));
+    GeomId args[10];
+    init_line(args);
+    init_line(args + 5);
+    const GeomId define =
+        graph_add_constraint(6, internal.inputs, 6, args, bisector_eval);
+
+    board_add_object(object_create(LINE, args, define, 0));
+    board_add_object(object_create(LINE, args + 5, define, 1));
     bisector_reset();
   } else {
     internal.first = line;

@@ -8,7 +8,6 @@ typedef struct {
   ObjectType type;
   Color color;
   GeomId define;
-  GeomId inner;
   GeomId args[5];
 } GeomObject;
 
@@ -17,8 +16,9 @@ void object_module_cleanup();
 
 GeomObject *object_get(GeomId id);
 bool object_is_valid(GeomId id);
-GeomId object_find(const char *name);
-GeomId object_create(ObjectType type, const GeomId *args, GeomId define, GeomId inner);
+bool object_check_coincident(GeomId id);
+GeomId object_create(ObjectType type, const GeomId *args);
+void object_set_coincident(GeomId obj_id, GeomId define);
 void object_delete(GeomId id);
 void object_delete_all();
 void object_traverse(void (*callback)(GeomId id, const GeomObject *));

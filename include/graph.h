@@ -16,7 +16,8 @@ GeomId graph_add_constraint(GeomSize input_size, const GeomId *inputs,
                             GeomSize output_size, const GeomId *outputs,
                             ValueEval eval);
 float graph_get_value(GeomId id);
-bool graph_is_valid(GeomId id, GeomId inner);
+bool graph_is_valid(GeomSize count, const GeomId *ids);
+bool graph_is_degenerate(GeomId id);
 void graph_ref_value(GeomId id);
 void graph_unref_value(GeomSize count, const GeomId *ids);
 void graph_change_value(GeomSize count, const GeomId *ids, const float *values);

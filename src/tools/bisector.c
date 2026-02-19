@@ -61,11 +61,13 @@ static void bisector_ctrl(const Vec2 pos, const MouseEvent event) {
     GeomId args[10];
     init_line(args);
     init_line(args + 5);
-    const GeomId define =
-        graph_add_constraint(6, internal.inputs, 6, args, bisector_eval);
 
-    board_add_object(object_create(LINE, args, define, 0));
-    board_add_object(object_create(LINE, args + 5, define, 1));
+    const GeomId outputs[6] = {args[0], args[1], args[2],
+                               args[5], args[6], args[7]};
+
+    graph_add_constraint(6, internal.inputs, 6, outputs, bisector_eval);
+    board_add_object(object_create(LINE, args));
+    board_add_object(object_create(LINE, args + 5));
     bisector_reset();
   } else {
     internal.first = line;

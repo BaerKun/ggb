@@ -61,9 +61,8 @@ static void perp_ctrl(const Vec2 pos, const MouseEvent event) {
 
   GeomId args[5];
   init_line(args);
-  const GeomId define =
-      graph_add_constraint(4, internal.inputs, 3, args, perp_eval);
-  board_add_object(object_create(LINE, args, define, 0));
+  graph_add_constraint(4, internal.inputs, 3, args, perp_eval);
+  board_add_object(object_create(LINE, args));
   perp_reset();
 }
 

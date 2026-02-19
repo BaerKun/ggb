@@ -33,7 +33,7 @@ static void circle_ctrl(const Vec2 pos, const MouseEvent event) {
     args[1] = internal.inputs[1];
     args[2] = graph_add_value(0);
     graph_add_constraint(4, internal.inputs, 1, args + 2, circle_point_eval);
-    board_add_object(object_create(CIRCLE, args, -1, -1));
+    board_add_object(object_create(CIRCLE, args));
     circle_reset();
   } else {
     internal.center = id;

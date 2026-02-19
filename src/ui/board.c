@@ -21,8 +21,9 @@ typedef union {
 } BoardGeomData;
 
 typedef struct {
+  bool show;
   bool valid;
-  bool visible;
+  bool coincident;
   bool selected;
   Color color;
   char name[8];
@@ -57,7 +58,7 @@ static void board_vector_remove(BoardGeomVector *v, GeomId id);
 static void get_board_buffer(GeomId id, const GeomObject *obj);
 static float vec2_distance(Vec2 v1, Vec2 v2);
 static inline bool board_is_visible(const BoardGeomObject *obj) {
-  return obj->valid && obj->visible;
+  return obj->show && obj->valid && !obj->coincident;
 }
 
 void board_init(const float x, const float y, const float w, const float h) {
@@ -106,7 +107,7 @@ void board_draw() {
   const BoardGeomVector *vector = &board.circles;
   for (GeomSize i = 0; i < vector->size; i++) {
     const BoardGeomObject *obj = board.objects + vector->elems[i];
-    if (!obj->visible || !obj->valid) continue;
+    if (!obj->show || !obj->valid) continue;
     const BoardCircle cr = obj->geom.cr;
     rl_draw_ring(cr.center, cr.radius - 2, cr.radius + 2, 0, 360, 36,
                  obj->color);
@@ -262,7 +263,9 @@ static BoardGeomObject *board_vector_insert(BoardGeomVector *v,
   v->elems[v->size++] = id;
 
   BoardGeomObject *obj = board.objects + id;
-  obj->visible = true;
+  obj->show = true;
+  obj->valid = true;
+  obj->coincident = false;
   obj->selected = false;
   return obj;
 }
@@ -287,7 +290,8 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
   case POINT: {
     BoardGeomObject *b_obj = board_vector_insert(&board.points, id);
     b_obj->valid = object_is_valid(id);
-    if (!b_obj->valid) return;
+    b_obj->coincident = object_check_coincident(id);
+    if (!b_obj->valid || b_obj->coincident) return;
 
     const float x = graph_get_value(args[0]);
     const float y = graph_get_value(args[1]);
@@ -303,7 +307,8 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
   case CIRCLE: {
     BoardGeomObject *b_obj = board_vector_insert(&board.circles, id);
     b_obj->valid = object_is_valid(id);
-    if (!b_obj->valid) return;
+    b_obj->coincident = object_check_coincident(id);
+    if (!b_obj->valid || b_obj->coincident) return;
 
     const float cx = graph_get_value(args[0]);
     const float cy = graph_get_value(args[1]);
@@ -323,7 +328,8 @@ static void get_board_buffer(const GeomId id, const GeomObject *obj) {
   default: {
     BoardGeomObject *b_obj = board_vector_insert(&board.lines, id);
     b_obj->valid = object_is_valid(id);
-    if (!b_obj->valid) return;
+    b_obj->coincident = object_check_coincident(id);
+    if (!b_obj->valid || b_obj->coincident) return;
 
     const float nx = graph_get_value(args[0]);
     const float ny = graph_get_value(args[1]);

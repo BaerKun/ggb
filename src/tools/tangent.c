@@ -74,8 +74,11 @@ static void create_tangents_cp() {
 
   const GeomId define = graph_add_constraint(5, internal.inputs, 6, outputs,
                                              tangent_circle_point);
-  board_add_object(object_create(LINE, args, define, 0));
-  board_add_object(object_create(LINE, args + 5, define, 1));
+  const GeomId one = object_create(LINE, args);
+  const GeomId two = object_create(LINE, args + 5);
+  object_set_coincident(two, define);
+  board_add_object(one);
+  board_add_object(two);
 }
 
 static void create_tangents_cc() {
@@ -93,10 +96,17 @@ static void create_tangents_cc() {
                                             tangent_circles_inner);
   const GeomId outer = graph_add_constraint(6, internal.inputs, 6, outputs + 6,
                                             tangent_circles_outer);
-  board_add_object(object_create(LINE, args, inner, 0));
-  board_add_object(object_create(LINE, args + 5, inner, 1));
-  board_add_object(object_create(LINE, args + 10, outer, 0));
-  board_add_object(object_create(LINE, args + 15, outer, 1));
+
+  const GeomId inner_one = object_create(LINE, args);
+  const GeomId inner_two = object_create(LINE, args + 5);
+  const GeomId outer_one = object_create(LINE, args + 10);
+  const GeomId outer_two = object_create(LINE, args + 15);
+  object_set_coincident(inner_two, inner);
+  object_set_coincident(outer_two, outer);
+  board_add_object(inner_one);
+  board_add_object(inner_two);
+  board_add_object(outer_one);
+  board_add_object(outer_two);
 }
 
 static void tangent_reset() {

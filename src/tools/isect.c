@@ -79,6 +79,22 @@ static int isect_circle_circle(const float inputs[6], float *outputs[4]) {
   return 2;
 }
 
+static void create_isect_2points(const ValueEval eval) {
+  GeomId args[4];
+  args[0] = graph_add_value(0);
+  args[1] = graph_add_value(0);
+  args[2] = graph_add_value(0);
+  args[3] = graph_add_value(0);
+
+  const GeomId define = graph_add_constraint(6, internal.inputs, 4, args, eval);
+
+  const GeomId one = object_create(POINT, args);
+  const GeomId two = object_create(POINT, args + 2);
+  object_set_coincident(two, define);
+  board_add_object(one);
+  board_add_object(two);
+}
+
 static void isect_reset() {
   if (internal.first_id != -1) {
     board_deselect_object(internal.first_id);
@@ -107,37 +123,24 @@ static void isect_ctrl(const Vec2 pos, const MouseEvent event) {
     return;
   }
 
-  GeomId args[4];
-  args[0] = graph_add_value(0);
-  args[1] = graph_add_value(0);
-
   if (internal.first_t == LINE) {
     copy_args(internal.inputs + 3, obj->args, 3);
     if (obj->type == LINE) {
-      const GeomId define =
-          graph_add_constraint(6, internal.inputs, 2, args, isect_line_line);
-      board_add_object(object_create(POINT, args, define, 0));
+      GeomId args[2];
+      args[0] = graph_add_value(0);
+      args[1] = graph_add_value(0);
+      graph_add_constraint(6, internal.inputs, 2, args, isect_line_line);
+      board_add_object(object_create(POINT, args));
     } else {
-      args[2] = graph_add_value(0);
-      args[3] = graph_add_value(0);
-      const GeomId define =
-          graph_add_constraint(6, internal.inputs, 4, args, isect_line_circle);
-      board_add_object(object_create(POINT, args, define, 0));
-      board_add_object(object_create(POINT, args + 2, define, 1));
+      create_isect_2points(isect_line_circle);
     }
     isect_reset();
     return;
   }
 
-  args[2] = graph_add_value(0);
-  args[3] = graph_add_value(0);
   copy_args(internal.inputs, obj->args, 3);
-  const GeomId define = graph_add_constraint(
-      6, internal.inputs, 4, args,
-      obj->type == LINE ? isect_line_circle : isect_circle_circle);
-
-  board_add_object(object_create(POINT, args, define, 0));
-  board_add_object(object_create(POINT, args + 2, define, 1));
+  create_isect_2points(obj->type == LINE ? isect_line_circle
+                                         : isect_circle_circle);
   isect_reset();
 }
 

@@ -29,9 +29,8 @@ static void midpoint_ctrl(const Vec2 pos, const MouseEvent event) {
     GeomId args[2];
     args[0] = graph_add_value(0);
     args[1] = graph_add_value(0);
-    const GeomId define =
-        graph_add_constraint(4, internal.inputs, 2, args, midpoint_eval);
-    board_add_object(object_create(POINT, args, define, 0));
+    graph_add_constraint(4, internal.inputs, 2, args, midpoint_eval);
+    board_add_object(object_create(POINT, args));
     midpoint_reset();
   } else {
     internal.first = pt;

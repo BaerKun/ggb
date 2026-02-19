@@ -53,9 +53,8 @@ static void circum_ctrl(const Vec2 pos, const MouseEvent event) {
     args[0] = graph_add_value(0);
     args[1] = graph_add_value(0);
     args[2] = graph_add_value(0);
-    const GeomId define =
-        graph_add_constraint(6, internal.inputs, 3, args, circum_eval);
-    board_add_object(object_create(CIRCLE, args, define, 0));
+    graph_add_constraint(6, internal.inputs, 3, args, circum_eval);
+    board_add_object(object_create(CIRCLE, args));
     circum_reset();
   } else {
     internal.points[internal.n++] = pt;

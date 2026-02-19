@@ -14,8 +14,8 @@ typedef struct {
   int soln_count; // solution count
   GeomInt ref_count;
 
-  bool scheduled;
-  GeomId dep_head; // eid
+  GeomInt indegree; // sub-graph
+  GeomId dep_head;  // eid
   ValueEval eval;
 } GraphNode;
 
@@ -36,6 +36,7 @@ static void graph_edge_resize_callback(CGraphSize, CGraphSize);
 static void graph_get_inputs(const GraphNode *node, float *inputs);
 static void graph_link_inputs(GeomId id, GeomSize input_size,
                               const GeomId *inputs, float *input_values);
+static void graph_init_indegree(Queue *queue, CGraphIter *iter);
 static void graph_spread_invalid(Queue *queue, CGraphIter *iter);
 
 static void enqueue(Queue *q, const GeomId id) { q->elems[q->rear++] = id; }
@@ -73,7 +74,7 @@ GeomId graph_add_value(const float value) {
   node->soln_count = 1;
   node->value = value;
   node->ref_count = 0;
-  node->scheduled = false;
+  node->indegree = 0;
   node->dep_head = -1;
   node->eval = NULL;
   return id;
@@ -103,7 +104,7 @@ GeomId graph_add_constraint(const GeomSize input_size, const GeomId *inputs,
   GraphNode *node = internal.nodes + node_id;
   node->type = NODE_COMPUTE;
   node->ref_count = (GeomInt)output_size;
-  node->scheduled = false;
+  node->indegree = 0;
   node->eval = eval;
 
   float input_values[6], *output_values[6];
@@ -128,8 +129,15 @@ GeomId graph_add_constraint(const GeomSize input_size, const GeomId *inputs,
 
 float graph_get_value(const GeomId id) { return internal.nodes[id].value; }
 
-bool graph_is_valid(const GeomId id, const GeomId inner) {
-  return inner < internal.nodes[id].soln_count;
+bool graph_is_valid(const GeomSize count, const GeomId *ids) {
+  for (GeomSize i = 0; i < count; i++) {
+    if (internal.nodes[ids[i]].soln_count == 0) return false;
+  }
+  return true;
+}
+
+bool graph_is_degenerate(const GeomId id) {
+  return internal.nodes[id].soln_count == 1;
 }
 
 void graph_ref_value(const GeomId id) { internal.nodes[id].ref_count++; }
@@ -162,18 +170,20 @@ void graph_change_value(const GeomSize count, const GeomId *ids,
 
   GeomSize invalid_size = 0;
   Queue *queue = &internal.queue;
+  CGraphIter *iter = cgraphGetIter(&internal.graph);
+
   queue_clear(queue);
   for (GeomSize i = 0; i < count; i++) {
     enqueue(queue, ids[i]);
     internal.nodes[ids[i]].value = values[i];
   }
+  graph_init_indegree(queue, iter);
 
-  // TODO: 进行一次拓扑排序，确保每个节点只入队一次
-  CGraphIter *iter = cgraphGetIter(&internal.graph);
+  queue->front = 0;
+  queue->rear = count;
   while (!queue_empty(queue)) {
     const GeomId id = dequeue(queue);
     GraphNode *node = internal.nodes + id;
-    node->scheduled = false;
 
     CGraphId eid, to;
     cgraphIterResetEdge(iter, id);
@@ -211,8 +221,7 @@ void graph_change_value(const GeomSize count, const GeomId *ids,
     case NODE_VALUE:
       node->soln_count = 1;
       while (cgraphIterNextEdge(iter, id, &eid, &to)) {
-        if (!internal.nodes[to].scheduled) {
-          internal.nodes[to].scheduled = true;
+        if (--internal.nodes[to].indegree == 0) {
           enqueue(&internal.queue, (GeomId)to);
         }
       }
@@ -266,18 +275,31 @@ static void graph_get_inputs(const GraphNode *node, float *inputs) {
   }
 }
 
+static void graph_init_indegree(Queue *queue, CGraphIter *iter) {
+  while (!queue_empty(queue)) {
+    const GeomId id = dequeue(queue);
+    const GraphNode *node = internal.nodes + id;
+    if (node->type == NODE_COMPUTE) continue;
+
+    CGraphId eid, to;
+    cgraphIterResetEdge(iter, id);
+    while (cgraphIterNextEdge(iter, id, &eid, &to)) {
+      internal.nodes[to].indegree++;
+      enqueue(queue, (GeomId)to);
+    }
+  }
+}
+
 static void graph_spread_invalid(Queue *queue, CGraphIter *iter) {
   while (!queue_empty(queue)) {
     const GeomId id = dequeue(queue);
     GraphNode *node = internal.nodes + id;
     node->soln_count = 0;
-    node->scheduled = false;
 
     CGraphId eid, to;
     cgraphIterResetEdge(iter, id);
     while (cgraphIterNextEdge(iter, id, &eid, &to)) {
-      if (!internal.nodes[to].scheduled) {
-        internal.nodes[to].scheduled = true;
+      if (--internal.nodes[to].indegree == 0) {
         enqueue(&internal.queue, (GeomId)to);
       }
     }
